@@ -255,9 +255,40 @@ namespace BusinessLogic.Services
 
         public async Task<IServiceResult> LoginWithGoogleAsync(string idToken)
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
-            if (payload == null)
-                return new ServiceResult(Const.FAIL_READ_CODE, "Invalid Google token");
+            if (string.IsNullOrWhiteSpace(idToken))
+                return new ServiceResult(Const.FAIL_READ_CODE, "Google ID token is required.");
+
+            // Only server-configured public OAuth client IDs are trusted.
+            // Null Audience disables validation in the SDK; empty config fails closed.
+            var audiences = _configuration.GetSection("Authentication:Google:AllowedClientIds")
+                .GetChildren().Select(c => c.Value)
+                .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!).ToArray();
+            if (audiences.Length == 0)
+                return new ServiceResult(Const.ERROR_EXCEPTION, "Google Sign-In is not configured on the server.");
+
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                payload = await GoogleJsonWebSignature.ValidateAsync(idToken,
+                    new GoogleJsonWebSignature.ValidationSettings { Audience = audiences });
+            }
+            catch (InvalidJwtException)
+            {
+                return new ServiceResult(Const.FAIL_READ_CODE, "Google ID token is invalid or expired.");
+            }
+            catch (HttpRequestException)
+            {
+                return new ServiceResult(Const.ERROR_EXCEPTION, "Unable to verify Google credentials. Please retry.");
+            }
+            catch (TaskCanceledException)
+            {
+                return new ServiceResult(Const.ERROR_EXCEPTION, "Google token verification timed out. Please retry.");
+            }
+            if (payload == null ||
+                (payload.Issuer != "accounts.google.com" && payload.Issuer != "https://accounts.google.com") ||
+                !payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email) ||
+                string.IsNullOrWhiteSpace(payload.Subject))
+                return new ServiceResult(Const.FAIL_READ_CODE, "Google account email/identity is not verified.");
 
             var email = payload.Email;
             var name = payload.Name;
@@ -266,6 +297,11 @@ namespace BusinessLogic.Services
 
             // Kiểm tra tài khoản đã tồn tại chưa
             var user = await _userManager.FindByEmailAsync(email);
+
+            if (user != null && (user.IsDeleted || user.Status != "Active" ||
+                (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow) ||
+                (!string.IsNullOrEmpty(user.ProviderUserId) && user.ProviderUserId != googleId)))
+                return new ServiceResult(Const.FAIL_READ_CODE, "Google account is not accepted for this user.");
 
             if (user == null)
             {

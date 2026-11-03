@@ -2,11 +2,13 @@
 using Common;
 using Common.Helper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace APIs.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class NotificationController(INotificationRecipientService notificationRecipientService) : ControllerBase
     {
         private readonly INotificationRecipientService _service = notificationRecipientService;
@@ -15,6 +17,8 @@ namespace APIs.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserNotifications([FromQuery] int page = 1,[FromQuery] int pageSize = 10)
         {
+            if (page < 1 || pageSize < 1 || pageSize > 100)
+                return BadRequest(new { message = "Invalid notification page/pageSize." });
             try
             {
                 Guid userId = User.GetUserId();

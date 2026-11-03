@@ -1,4 +1,4 @@
-﻿using BusinessLogic.IServices;
+using BusinessLogic.IServices;
 using Common;
 using Common.Helper;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +26,7 @@ namespace APIs.Controllers
                 return Unauthorized(new { message = "Không xác định được userId từ token." });
             }
 
-            var result = await _service.GetList();
+            var result = await _service.GetList(operatorId: User.IsInRole("Admin") ? null : userId);
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -63,11 +63,12 @@ namespace APIs.Controllers
         }
 
         [HttpGet("{transactionId}")]
-        [Authorize]
+        [Authorize(Roles = "EVDriver, Admin, Staff")]
         public async Task<IActionResult> GetById([FromRoute] Guid transactionId)
         {
 
-            var result = await _service.GetById(transactionId);
+            var result = await _service.GetById(transactionId, User.IsInRole("EVDriver") ? User.GetUserId() : null,
+                User.IsInRole("Staff") && !User.IsInRole("Admin") ? User.GetUserId() : null);
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });

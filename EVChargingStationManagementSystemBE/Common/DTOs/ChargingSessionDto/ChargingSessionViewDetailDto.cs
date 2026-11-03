@@ -8,6 +8,7 @@ namespace Common.DTOs.ChargingSessionDto
     {
         public Guid Id { get; set; }
         public Guid ChargingPostId { get; set; }
+        public Guid ConnectorId { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
 

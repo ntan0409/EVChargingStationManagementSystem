@@ -1,285 +1,306 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/utils/formatters.dart';
 import '../../models/connector_model.dart';
 import '../../models/station_model.dart';
 import '../../models/vehicle_model.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/charging_session_provider.dart';
-import '../../providers/vehicle_provider.dart';
+import '../../services/station_service.dart';
+import '../../services/vehicle_service.dart';
+import '../widgets/api_problem.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/status_badge.dart';
 import 'live_charging_screen.dart';
+import '../widgets/driver_journey_guard.dart';
+import '../../models/booking_model.dart';
+import '../../services/driver_journey_service.dart';
 
-class StartChargingScreen extends StatefulWidget {
+class StartChargingScreen extends StatelessWidget {
   final ConnectorModel connector;
   final StationModel station;
-
+  final DriverJourneyService? journeyService;
   const StartChargingScreen({
     super.key,
     required this.connector,
     required this.station,
+    this.journeyService,
   });
-
   @override
-  State<StartChargingScreen> createState() => _StartChargingScreenState();
+  Widget build(BuildContext context) => DriverJourneyGuard(
+    step: DriverJourneyStep.charging,
+    connectorId: connector.id,
+    service: journeyService,
+    builder: (context, state) => _StartChargingContent(
+      connector: connector,
+      station: station,
+      booking: state.activeBooking!,
+    ),
+  );
 }
 
-class _StartChargingScreenState extends State<StartChargingScreen> {
-  double _initialBattery = 20.0;
-  double _targetBattery = 80.0;
-  VehicleModel? _selectedVehicle;
+class _StartChargingContent extends StatefulWidget {
+  final ConnectorModel connector;
+  final StationModel station;
+  final BookingModel booking;
+  const _StartChargingContent({
+    required this.connector,
+    required this.station,
+    required this.booking,
+  });
+  @override
+  State<_StartChargingContent> createState() => _StartChargingScreenState();
+}
 
+class _StartChargingScreenState extends State<_StartChargingContent> {
+  final _vehicles = VehicleService();
+  List<VehicleModel> _choices = [];
+  VehicleModel? _selected;
+  bool _loading = true;
+  bool _saving = false;
+  bool _inGarage = false;
+  String? _error;
+  double _initial = 20;
+  double _target = 80;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final vehicleProvider = Provider.of<VehicleProvider>(context, listen: false);
-      if (vehicleProvider.vehicles.isNotEmpty) {
-        setState(() {
-          _selectedVehicle = vehicleProvider.selectedVehicle ?? vehicleProvider.vehicles.first;
-        });
+      if (mounted) _load();
+    });
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _choices = [];
+      _selected = null;
+    });
+    final owned = await _vehicles.getMyVehicleModels();
+    if (!mounted) return;
+    if (!owned.success || owned.data == null) {
+      setState(() {
+        _loading = false;
+        _error = owned.message;
+      });
+      return;
+    }
+    if (owned.data!.isNotEmpty) {
+      setState(() {
+        _choices = owned.data!
+            .where((v) => v.id == widget.booking.vehicleId)
+            .toList();
+        _selected = _choices.firstOrNull;
+        _inGarage = true;
+        _loading = false;
+      });
+      return;
+    }
+    final catalog = await _vehicles.getVehicleModels();
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _inGarage = false;
+      if (catalog.success && catalog.data != null) {
+        _choices = catalog.data!;
+      } else {
+        _error = catalog.message;
       }
     });
   }
 
-  void _handleStartCharging() async {
-    final chargingProvider = Provider.of<ChargingSessionProvider>(context, listen: false);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    final batteryCapacity = _selectedVehicle?.batteryCapacityKWh ?? 80;
-
-    final success = await chargingProvider.startCharging(
-      connectorId: widget.connector.id,
-      batteryCapacityKWh: batteryCapacity,
-      initialBatteryLevelPercent: _initialBattery.toInt(),
-      expectedEnergiesKWh: _targetBattery.toInt(),
-      phone: authProvider.currentUser?.phone ?? '0912345678',
-      vehicleModelId: _selectedVehicle?.id,
-      stationPowerKw: double.tryParse(widget.connector.maxPower.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 60.0,
-      price: widget.station.pricePerKWh,
-    );
-
+  Future<void> _saveVehicle() async {
+    final vehicle = _selected;
+    if (vehicle == null || _saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final result = await _vehicles.addVehicle(vehicle);
     if (!mounted) return;
+    setState(() {
+      _saving = false;
+      if (!result.success) _error = result.message;
+    });
+    if (result.success) await _load();
+  }
 
-    if (success) {
+  Future<void> _start() async {
+    final vehicle = _selected;
+    if (vehicle == null ||
+        !_inGarage ||
+        vehicle.batteryCapacityKWh <= 0 ||
+        _target <= _initial) {
+      return;
+    }
+    final charging = context.read<ChargingSessionProvider>();
+    // Re-read the real connector immediately before the user-requested mutation.
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final location = await StationService().resolveConnector(
+      widget.connector.id,
+    );
+    if (!mounted) return;
+    if (!location.success ||
+        location.data == null ||
+        !location.data!.connector.canStart) {
+      setState(() {
+        _saving = false;
+        _error = location.success
+            ? 'Cổng chưa sẵn sàng. Cần cắm xe và không còn khóa thanh toán.'
+            : location.message;
+      });
+      return;
+    }
+    final accepted = await charging.startCharging(
+      connectorId: location.data!.connector.id,
+      batteryCapacityKWh: vehicle.batteryCapacityKWh,
+      initialBatteryLevelPercent: _initial.toInt(),
+      expectedEnergiesKWh: _target.toInt(),
+      vehicleModelId: vehicle.id,
+      bookingId: widget.booking.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      if (!accepted) _error = charging.errorMessage;
+    });
+    if (accepted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LiveChargingScreen()),
+      );
+    }
+  }
+
+  Future<void> _recover() async {
+    final charging = context.read<ChargingSessionProvider>();
+    final accepted = await charging.restoreSession();
+    if (!mounted) return;
+    if (accepted && charging.currentSession != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LiveChargingScreen()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(chargingProvider.errorMessage ?? 'Không thể bắt đầu phiên sạc'),
-          backgroundColor: AppColors.error,
-        ),
+      setState(
+        () => _error =
+            charging.errorMessage ??
+            'Không có phiên chưa thanh toán trên máy chủ.',
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final vehicleProvider = context.watch<VehicleProvider>();
-    final chargingProvider = context.watch<ChargingSessionProvider>();
-
-    final batteryCapacity = _selectedVehicle?.batteryCapacityKWh ?? 80;
-    final neededPercent = (_targetBattery - _initialBattery).clamp(0, 100);
-    final energyToChargeKWh = batteryCapacity * (neededPercent / 100.0);
-    final estimatedCost = energyToChargeKWh * widget.station.pricePerKWh * 1.10;
-
+    final charging = context.watch<ChargingSessionProvider>();
+    final busy = charging.isLoading || _saving;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thiết Lập Phiên Sạc'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Station & Connector Banner Card
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+      appBar: AppBar(title: const Text('Thiết Lập Phiên Sạc')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(
+            widget.station.stationName,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          Text(widget.station.location),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              title: Text(widget.connector.connectorName),
+              subtitle: Text(
+                '${widget.connector.type} • ${widget.connector.maxPower}',
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.station.stationName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const StatusBadge(status: 'Available'),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.station.location,
-                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
-                  ),
-                  const Divider(color: Colors.white24, height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.power_input, color: AppColors.primaryLight, size: 22),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.connector.connectorName,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${widget.connector.type} • ${widget.connector.maxPower}',
-                        style: const TextStyle(color: AppColors.primaryLight, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              trailing: StatusBadge(status: widget.connector.status),
             ),
-            const SizedBox(height: 24),
-
-            // Select Vehicle
-            const Text('Xe điện kết nối sạc', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<VehicleModel>(
-                  isExpanded: true,
-                  value: _selectedVehicle,
-                  items: vehicleProvider.vehicles.map((v) {
-                    return DropdownMenuItem(
+          ),
+          const SizedBox(height: 16),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            ApiProblem(message: _error!, onRetry: _load),
+          if (!_loading && _choices.isEmpty && _error == null)
+            const Text(
+              'Chưa có mẫu xe trên máy chủ. Liên hệ quản trị viên để bổ sung.',
+            ),
+          if (_choices.isNotEmpty) ...[
+            Text(
+              _inGarage
+                  ? 'Xe trong hồ sơ của bạn'
+                  : 'Chọn mẫu xe và lưu vào hồ sơ trước khi sạc',
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<VehicleModel>(
+              initialValue: _selected,
+              isExpanded: true,
+              hint: const Text('Chọn mẫu xe từ máy chủ'),
+              items: _choices
+                  .map(
+                    (v) => DropdownMenuItem(
                       value: v,
-                      child: Text('${v.modelName} (Pin ${v.batteryCapacityKWh} kWh)',
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                    );
-                  }).toList(),
-                  onChanged: (v) {
-                    setState(() {
-                      _selectedVehicle = v;
-                    });
-                  },
-                ),
+                      child: Text(
+                        '${v.modelName} • ${v.batteryCapacityKWh} kWh',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: busy ? null : (v) => setState(() => _selected = v),
+            ),
+            if (!_inGarage) ...[
+              const SizedBox(height: 12),
+              CustomButton(
+                text: 'Lưu xe vào hồ sơ',
+                onPressed: _selected == null || busy ? null : _saveVehicle,
+                isLoading: _saving,
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Current Battery
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Mức pin xe hiện tại:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                Text('${_initialBattery.toInt()}%', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.secondary)),
-              ],
-            ),
-            Slider(
-              value: _initialBattery,
-              min: 5,
-              max: 90,
-              divisions: 17,
-              activeColor: AppColors.secondary,
-              label: '${_initialBattery.toInt()}%',
-              onChanged: (val) {
-                setState(() {
-                  _initialBattery = val;
-                  if (_targetBattery <= _initialBattery) {
-                    _targetBattery = _initialBattery + 10;
-                  }
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Target Battery
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Mục tiêu sạc tới:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                Text('${_targetBattery.toInt()}%', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
-              ],
-            ),
-            Slider(
-              value: _targetBattery,
-              min: _initialBattery + 5,
-              max: 100,
-              divisions: 19,
-              activeColor: AppColors.primary,
-              label: '${_targetBattery.toInt()}%',
-              onChanged: (val) {
-                setState(() {
-                  _targetBattery = val;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Estimate Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Năng lượng cần sạc:'),
-                      Text(Formatters.formatEnergy(energyToChargeKWh), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Ước tính chi phí sạc:'),
-                      Text(Formatters.formatCurrency(estimatedCost), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Start Charging Button
-            CustomButton(
-              text: 'Cắm Sạc & Bắt Đầu',
-              icon: const Icon(Icons.bolt, color: Colors.white),
-              isLoading: chargingProvider.isLoading,
-              onPressed: _handleStartCharging,
-            ),
+            ],
           ],
-        ),
+          if (_selected != null && _selected!.batteryCapacityKWh <= 0)
+            const Text(
+              'Mẫu xe trên máy chủ chưa có dung lượng pin hợp lệ. Cần quản trị viên cập nhật đúng thông số trước khi sạc.',
+            ),
+          const SizedBox(height: 24),
+          Text('Mức pin bạn nhập: ${_initial.toInt()}%'),
+          Slider(
+            value: _initial,
+            min: 0,
+            max: 99,
+            divisions: 99,
+            onChanged: busy ? null : (v) => setState(() => _initial = v),
+          ),
+          Text('Mức pin mục tiêu: ${_target.toInt()}%'),
+          Slider(
+            value: _target,
+            min: 1,
+            max: 100,
+            divisions: 99,
+            onChanged: busy ? null : (v) => setState(() => _target = v),
+          ),
+          if (_target <= _initial)
+            const Text('Mục tiêu phải lớn hơn mức pin ban đầu.'),
+          const Text(
+            'Chi phí được máy chủ tính theo điện năng đo được khi dừng phiên. Không dùng số liệu mô phỏng.',
+          ),
+          const SizedBox(height: 20),
+          CustomButton(
+            text: 'Bắt đầu sạc',
+            isLoading: busy,
+            onPressed:
+                busy ||
+                    !_inGarage ||
+                    _selected == null ||
+                    _selected!.batteryCapacityKWh <= 0 ||
+                    _target <= _initial ||
+                    charging.needsReconciliation
+                ? null
+                : _start,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: busy ? null : _recover,
+            child: const Text('Kiểm tra / mở lại phiên hiện tại'),
+          ),
+        ],
       ),
     );
   }

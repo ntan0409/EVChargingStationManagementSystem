@@ -1,57 +1,101 @@
+import '../core/network/api_contract.dart';
+
 class VoucherModel {
   final String id;
-  final String code;
+  final String name;
   final String description;
-  final double discountPercent; // Ví dụ 10%
-  final double maxDiscountAmount; // Tối đa 50.000 đ
-  final double minOrderAmount;
+  final double value;
+  final String voucherType;
   final DateTime validFrom;
   final DateTime validTo;
   final bool isActive;
   final int pointsRequired;
-
   VoucherModel({
     required this.id,
-    required this.code,
+    required this.name,
     required this.description,
-    this.discountPercent = 10,
-    this.maxDiscountAmount = 50000,
-    this.minOrderAmount = 0,
+    required this.value,
+    required this.voucherType,
     required this.validFrom,
     required this.validTo,
-    this.isActive = true,
-    this.pointsRequired = 100,
+    required this.isActive,
+    required this.pointsRequired,
   });
-
   factory VoucherModel.fromJson(Map<String, dynamic> json) {
+    final from = contractDate(json['validFrom']);
+    final to = contractDate(json['validTo']);
+    if (from == null ||
+        to == null ||
+        json['name'] is! String ||
+        json['isActive'] is! bool ||
+        json['requiredPoints'] is! int ||
+        (json['requiredPoints'] as int) < 0) {
+      throw const FormatException('Invalid voucher');
+    }
+    final value = contractNumber(json['value']);
+    final type = json['voucherType'];
+    if (!['Discount', 'Amount'].contains(type) ||
+        (type == 'Discount' && value > 100)) {
+      throw const FormatException('Invalid voucher value');
+    }
     return VoucherModel(
-      id: json['id']?.toString() ?? '',
-      code: json['code']?.toString() ?? 'EVPROMO',
-      description: json['description']?.toString() ?? 'Giảm giá sạc xe điện',
-      discountPercent: (json['discountPercent'] as num?)?.toDouble() ?? 10.0,
-      maxDiscountAmount: (json['maxDiscountAmount'] as num?)?.toDouble() ?? 50000.0,
-      minOrderAmount: (json['minOrderAmount'] as num?)?.toDouble() ?? 0.0,
-      validFrom: json['validFrom'] != null
-          ? DateTime.tryParse(json['validFrom'].toString()) ?? DateTime.now()
-          : DateTime.now(),
-      validTo: json['validTo'] != null
-          ? DateTime.tryParse(json['validTo'].toString()) ?? DateTime.now().add(const Duration(days: 30))
-          : DateTime.now().add(const Duration(days: 30)),
-      isActive: json['isActive'] ?? true,
-      pointsRequired: json['pointsRequired'] is int
-          ? json['pointsRequired']
-          : int.tryParse(json['pointsRequired']?.toString() ?? '100') ?? 100,
+      id: contractId(json['id']),
+      name: json['name'],
+      description: json['description']?.toString() ?? '',
+      value: value,
+      voucherType: type as String,
+      validFrom: from,
+      validTo: to,
+      isActive: json['isActive'],
+      pointsRequired: json['requiredPoints'],
     );
   }
+  bool get isValid =>
+      isActive &&
+      !DateTime.now().isBefore(validFrom) &&
+      !DateTime.now().isAfter(validTo);
+}
 
-  bool get isValid => isActive && DateTime.now().isAfter(validFrom) && DateTime.now().isBefore(validTo);
-
-  double calculateDiscount(double originalAmount) {
-    if (originalAmount < minOrderAmount) return 0.0;
-    double calculated = originalAmount * (discountPercent / 100);
-    if (calculated > maxDiscountAmount) {
-      return maxDiscountAmount;
+class UserVoucherModel {
+  final String id;
+  final String voucherId;
+  final String voucherName;
+  final double value;
+  final String voucherType;
+  final DateTime expiryDate;
+  final String status;
+  final String? sessionId;
+  UserVoucherModel({
+    required this.id,
+    required this.voucherId,
+    required this.voucherName,
+    required this.value,
+    required this.voucherType,
+    required this.expiryDate,
+    required this.status,
+    this.sessionId,
+  });
+  factory UserVoucherModel.fromJson(Map<String, dynamic> json) {
+    final expiry = contractDate(json['expiryDate']);
+    if (expiry == null ||
+        json['status'] is! String ||
+        json['voucherName'] is! String ||
+        !['Discount', 'Amount'].contains(json['voucherType'])) {
+      throw const FormatException('Invalid owned voucher');
     }
-    return calculated;
+    return UserVoucherModel(
+      id: contractId(json['id']),
+      voucherId: contractId(json['voucherId']),
+      voucherName: json['voucherName'],
+      value: contractNumber(json['voucherValue']),
+      voucherType: json['voucherType'],
+      expiryDate: expiry,
+      status: json['status'],
+      sessionId: json['sessionId'] == null
+          ? null
+          : contractId(json['sessionId']),
+    );
   }
+  bool get isUsable =>
+      status == 'Redeemed' && !DateTime.now().isAfter(expiryDate);
 }

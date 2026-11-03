@@ -46,7 +46,10 @@ namespace Infrastructure.Data
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection"));
+        {
+            if (!optionsBuilder.IsConfigured)
+                optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection"));
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

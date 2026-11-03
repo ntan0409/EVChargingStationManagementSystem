@@ -1,4 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../auth/login_screen.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/app_colors.dart';
 import '../widgets/custom_button.dart';
@@ -27,23 +31,46 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
   }
 
   void _saveUrl(String url) async {
-    await ApiConstants.setBaseUrl(url);
+    final auth = context.read<AuthProvider>();
+    final previousUrl = ApiConstants.baseUrl;
+    try {
+      await ApiConstants.setBaseUrl(url);
+      if (previousUrl != ApiConstants.baseUrl) await auth.logout();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is FormatException
+                ? error.message
+                : 'Không thể lưu cấu hình API.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Đã cập nhật API Base URL: $url'),
+        content: Text('Đã cập nhật API Base URL: ${ApiConstants.baseUrl}'),
         backgroundColor: AppColors.success,
       ),
     );
-    Navigator.of(context).pop();
+    if (previousUrl != ApiConstants.baseUrl) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cấu Hình Kết Nối API'),
-      ),
+      appBar: AppBar(title: const Text('Cấu Hình Kết Nối API')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -73,24 +100,35 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
             ),
             const SizedBox(height: 10),
 
-            _buildPresetOption(
-              title: 'Android Emulator (10.0.2.2)',
-              subtitle: 'http://10.0.2.2:7252/api',
-              url: 'http://10.0.2.2:7252/api',
-            ),
+            if (!kReleaseMode)
+              _buildPresetOption(
+                title: 'Android Emulator (10.0.2.2)',
+                subtitle: 'http://10.0.2.2:5058/api (debug)',
+                url: 'http://10.0.2.2:5058/api',
+              ),
+            const SizedBox(height: 8),
+
+            if (!kReleaseMode)
+              _buildPresetOption(
+                title: 'Localhost HTTP (Web / Windows debug)',
+                subtitle: 'http://localhost:5058/api',
+                url: 'http://localhost:5058/api',
+              ),
             const SizedBox(height: 8),
 
             _buildPresetOption(
-              title: 'Localhost (Windows / iOS / Web)',
+              title: 'Localhost HTTPS (cần chứng chỉ tin cậy)',
               subtitle: 'https://localhost:7252/api',
               url: 'https://localhost:7252/api',
             ),
             const SizedBox(height: 8),
 
             _buildPresetOption(
-              title: 'Mạng LAN Thiết Bị Thật (VD: 192.168.1.15)',
-              subtitle: 'http://192.168.1.15:7252/api',
-              url: 'http://192.168.1.15:7252/api',
+              title: 'Thiết bị thật (nhập host/IP LAN của backend)',
+              subtitle: kReleaseMode
+                  ? 'HTTPS với chứng chỉ được tin cậy'
+                  : 'Debug HTTP 5058; HTTPS 7252 cần chứng chỉ tin cậy',
+              url: kReleaseMode ? 'https://' : 'http://',
             ),
             const SizedBox(height: 32),
 
@@ -131,9 +169,18 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
                 ],
               ),
             ),

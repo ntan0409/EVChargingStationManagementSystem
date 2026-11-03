@@ -13,5 +13,7 @@ namespace Common.DTOs.ConnectorDto
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public Guid ChargingPostId { get; set; }
+        public bool IsPluggedIn { get; set; }
+        public bool IsLocked { get; set; }
     }
 }

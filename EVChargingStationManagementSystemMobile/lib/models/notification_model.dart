@@ -1,3 +1,5 @@
+import '../core/network/api_contract.dart';
+
 class NotificationModel {
   final String id;
   final String title;
@@ -19,14 +21,16 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id']?.toString() ?? '',
+      id: contractId(json['id']),
       title: json['title']?.toString() ?? 'Thông báo',
       message: json['message']?.toString() ?? json['content']?.toString() ?? '',
       type: json['type']?.toString() ?? 'System',
-      isRead: json['isRead'] == true || json['status']?.toString().toLowerCase() == 'read',
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+      isRead:
+          json['isRead'] == true ||
+          json['status']?.toString().toLowerCase() == 'read',
+      createdAt:
+          contractDate(json['createdAt']) ??
+          (throw const FormatException('Missing notification date')),
       relatedId: json['relatedId']?.toString(),
     );
   }

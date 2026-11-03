@@ -5,6 +5,7 @@ namespace Common.DTOs.BookingDto
     public class BookingViewDto
     {
         public Guid Id { get; set; }
+        public Guid? VehicleModelId { get; set; }
         public string? CheckInCode { get; set; }
 
         // Thời gian dự kiến & thực tế

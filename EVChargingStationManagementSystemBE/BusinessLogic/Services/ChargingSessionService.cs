@@ -1,218 +1,145 @@
-﻿using BusinessLogic.Base;
+using BusinessLogic.Base;
 using BusinessLogic.IServices;
 using Common;
 using Common.DTOs.ChargingSessionDto;
-using Common.Enum.ChargingSession;
-using Common.Enum.Connector;
-using Common.Helper;
-using Infrastructure.IUnitOfWork;
+using Infrastructure.Data;
 using Infrastructure.Models;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 
-namespace BusinessLogic.Services
+namespace BusinessLogic.Services;
+
+public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journey) : IChargingSessionService
 {
-    public class ChargingSessionService(IUnitOfWork unitOfWork) : IChargingSessionService
+    public async Task<IServiceResult> GetList()
     {
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-
-        public async Task<IServiceResult> GetList()
-        {
-            try
-            {
-                var chargingSession = await _unitOfWork.ChargingSessionRepository.GetQueryable()
-                    .AsNoTracking()
-                    //.Where(c => !c.IsDeleted && c.UserId == userId)
-                    .Where(c => !c.IsDeleted)
-                    //.ProjectToType<ChargingSessionViewListDto>()
-                    .ToListAsync();
-                if (chargingSession == null || chargingSession.Count == 0)
-                    return new ServiceResult(
-                        Const.WARNING_NO_DATA_CODE,
-                        "Không tìm thấy phiên sạc nào");
-                var response = chargingSession.Adapt<List<ChargingSessionViewListDto>>();
-                return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, response);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        public async Task<IServiceResult> GetById(Guid SessionId)
-        {
-            try
-            {
-                var chargingSession = await _unitOfWork.ChargingSessionRepository.GetQueryable()
-                    .AsNoTracking()
-                    .Where(v => !v.IsDeleted && v.Id == SessionId)
-                    .ProjectToType<ChargingSessionViewDetailDto>()
-                    .FirstOrDefaultAsync();
-                if (chargingSession == null)
-                    return new ServiceResult(
-                        Const.WARNING_NO_DATA_CODE,
-                        "Không tìm thấy phiên sạc nào"
-                    );
-
-                return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, chargingSession);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        public async Task<IServiceResult> GetByConnector(Guid connectorId)
-        {
-            try
-            {
-                var chargingSession = await _unitOfWork.ChargingSessionRepository.GetQueryable()
-                    .AsNoTracking()
-                    .Where(v => !v.IsDeleted && v.ConnectorId == connectorId && v.Status.Equals(ChargingSessionStatus.Completed.ToString()))
-                    .OrderByDescending(v => v.UpdatedAt)
-                    .ProjectToType<ChargingSessionViewDetailDto>()
-                    .FirstOrDefaultAsync();
-                if (chargingSession == null)
-                    return new ServiceResult(
-                        Const.WARNING_NO_DATA_CODE,
-                        "Không tìm thấy phiên sạc nào"
-                    );
-
-                return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, chargingSession);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        public async Task<IServiceResult> Start(ChargingSessionStartDto dto)
-        {
-            try
-            {
-                var chargingSession = dto.Adapt<ChargingSession>();
-                chargingSession.Id = Guid.NewGuid();
-                chargingSession.CreatedAt = DateTime.Now;
-                chargingSession.UpdatedAt = DateTime.Now;
-                chargingSession.StartTime = DateTime.Now;
-                chargingSession.Status = ChargingSessionStatus.Charging.ToString();
-
-                if (dto.Phone.HasValue())
-                {
-                    var user = await _unitOfWork.UserAccountRepository.GetQueryable()
-                        .AsNoTracking()
-                        .Where(u => !u.IsDeleted && u.PhoneNumber == dto.Phone)
-                        .Include(u => u.EVDriverProfile)
-                        .FirstOrDefaultAsync();
-                    if (user == null)
-                        return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy tài khoản người dùng, vui lòng xem lại số điện thoại");
-                    if (user?.EVDriverProfile == null)
-                        return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Số điện thoại này không thuộc tài khoản tài xế");
-
-                    chargingSession.UserId = user.Id;
-                    chargingSession.DriverId = user.EVDriverProfile.Id;
-
-                    if (dto.VehicleModelId == Guid.Empty)
-                        return new ServiceResult(Const.FAIL_CREATE_CODE, "Vui lòng chọn xe trong profile của bạn");
-                }
-
-                var connector = await _unitOfWork.ConnectorRepository.GetQueryable()
-                    .Where(p => !p.IsDeleted && p.Id == dto.ConnectorId)
-                    .Include(v => v.ChargingPost)
-                        .ThenInclude(c => c.ChargingStationNavigation)
-                    .FirstOrDefaultAsync();
-
-                if (connector == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy cổng sạc được chọn");
-
-                if (connector.ChargingPost == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy trụ sạc được chọn");
-
-                if (connector.ChargingPost.ChargingStationNavigation == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy trạm sạc đã chọn");
-
-                // Nếu cổng sạc là bất cứ trạng thái nào khác ngoài "InUse - (đang được sử dụng)" thì trả lỗi 
-                if (!connector.Status.Equals(ConnectorStatus.InUse.ToString()))
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Cổng sạc này không khả dụng hiện tại hoặc chưa được cắm vào xe");
-                // Sau khi đã chạy api dừng sạc (stop) thì không cho phép chạy api này để ngăn người dùng chưa thanh toán
-                if (connector.IsLocked)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Bạn chưa thanh toán phiên sạc trước, vui lòng thanh toán phiên sạc trước");
-
-                chargingSession.ChargingPostId = connector.ChargingPostId;
-                connector.Status = ConnectorStatus.Charging.ToString();
-                connector.IsLocked = true;
-                connector.ChargingPost.UpdatedAt = DateTime.Now;
-
-                connector.ChargingPost.ChargingStationNavigation.UpdatedAt = DateTime.Now;
-
-                await _unitOfWork.ChargingSessionRepository.CreateAsync(chargingSession);
-                var result = await _unitOfWork.SaveChangesAsync();
-                if (result > 0)
-                {
-                    var response = chargingSession.Adapt<ChargingSessionViewDetailDto>();
-                    return new ServiceResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, response);
-                }
-                else
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        public async Task<IServiceResult> Stop(ChargingSessionStopDto dto, Guid sessionId)
-        {
-            try
-            {
-                var session = await _unitOfWork.ChargingSessionRepository.GetQueryable()
-                    .Where(s => !s.IsDeleted && s.Id == sessionId)
-                    .FirstOrDefaultAsync();
-                if (session == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy phiên sạc nào");
-
-                if (!session.Status.Equals(ChargingSessionStatus.Charging.ToString()))
-                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Phiên sạc này đã được dừng lại rồi");
-
-                var connector = await _unitOfWork.ConnectorRepository.GetQueryable()
-                    .Where(p => !p.IsDeleted && p.Id == session.ConnectorId)
-                    .FirstOrDefaultAsync();
-
-                if (connector == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy cổng sạc được chọn");
-
-                dto.Adapt(session);
-
-                var t_e = await _unitOfWork.SystemConfigurationRepository.GetQueryable()
-                .AsNoTracking()
-                .Where(c => !c.IsDeleted && c.Name == "PRICE_PER_kWH")
-                .FirstOrDefaultAsync();
-
-                decimal pricePerKWh = 1000; //vnd
-                if (t_e != null && _unitOfWork.SystemConfigurationRepository.Validate(t_e))
-                    pricePerKWh = t_e.MinValue ?? 1000;
-
-                session.Cost = (decimal)dto.EnergyDeliveredKWh * pricePerKWh;
-                session.Status = ChargingSessionStatus.Completed.ToString();
-                session.UpdatedAt = DateTime.Now;
-                session.EndTime = DateTime.Now;
-
-                connector.Status = ConnectorStatus.InUse.ToString();
-                connector.UpdatedAt = DateTime.Now;
-
-                var result = await _unitOfWork.SaveChangesAsync();
-                if (result > 0)
-                {
-                    var response = session.Adapt<ChargingSessionViewDetailDto>();
-                    return new ServiceResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, response);
-                }
-                else
-                    return new ServiceResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
+        var rows = await db.ChargingSessions.AsNoTracking().Where(s => !s.IsDeleted)
+            .OrderByDescending(s => s.StartTime).ProjectToType<ChargingSessionViewListDto>().ToListAsync();
+        return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, rows);
     }
+
+    public async Task<IServiceResult> GetById(Guid id, Guid? accountId = null)
+    {
+        var session = await db.ChargingSessions.AsNoTracking().FirstOrDefaultAsync(s =>
+            !s.IsDeleted && s.Id == id && (accountId == null || s.UserId == accountId));
+        return Snapshot(session);
+    }
+
+    public async Task<IServiceResult> GetByConnector(Guid connectorId, Guid? accountId = null)
+    {
+        var session = await db.ChargingSessions.AsNoTracking().Where(s => !s.IsDeleted &&
+            s.ConnectorId == connectorId && s.Status == "Completed" &&
+            (accountId == null || s.UserId == accountId)).OrderByDescending(s => s.UpdatedAt).FirstOrDefaultAsync();
+        return Snapshot(session);
+    }
+
+    public async Task<IServiceResult> GetCurrent(Guid accountId)
+    {
+        var session = await db.ChargingSessions.AsNoTracking().Where(s => !s.IsDeleted &&
+            s.UserId == accountId && (s.Status == "Charging" || s.Status == "Completed"))
+            .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync();
+        return Snapshot(session);
+    }
+
+    public Task<IServiceResult> Start(ChargingSessionStartDto dto, Guid? accountId = null) =>
+        DatabaseWork.Write(db, async () =>
+        {
+            if (accountId == null || accountId == Guid.Empty)
+                return Fail("Không xác định được tài xế từ phiên đăng nhập.");
+            var eligibility = await journey.GetState(accountId.Value);
+            if (eligibility?.ProfileCompleted != true)
+                return Fail("Hoàn tất hồ sơ, xác minh email và chọn xe hợp lệ trước khi bắt đầu sạc.");
+            if (dto.BookingId == null || dto.BookingId == Guid.Empty)
+                return Fail("Cần lịch đặt đã check-in trước khi bắt đầu sạc.");
+            if (dto.BatteryCapacityKWh <= 0 || dto.InitialBatteryLevelPercent < 0 ||
+                dto.ExpectedEnergiesKWh > 100 || dto.InitialBatteryLevelPercent >= dto.ExpectedEnergiesKWh)
+                return Fail("Thông số pin không hợp lệ.");
+            var driver = await db.EVDrivers.FirstOrDefaultAsync(d => d.AccountId == accountId && !d.IsDeleted);
+            if (driver == null) return Missing("Không tìm thấy hồ sơ tài xế.");
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == accountId && !u.IsDeleted && u.Status == "Active");
+            if (user == null) return Fail("Tài khoản không được phép bắt đầu sạc.");
+            if (await db.ChargingSessions.AnyAsync(s => !s.IsDeleted && s.UserId == accountId &&
+                (s.Status == "Charging" || s.Status == "Completed")))
+                return Fail("Bạn còn phiên đang sạc hoặc chưa thanh toán. Hãy mở lại phiên hiện tại.");
+            if (dto.VehicleModelId == null || dto.VehicleModelId == Guid.Empty)
+                return Fail("Vui lòng chọn mẫu xe hợp lệ.");
+            var vehicle = await db.VehicleModels.AsNoTracking().FirstOrDefaultAsync(v =>
+                v.Id == dto.VehicleModelId && !v.IsDeleted);
+            if (vehicle == null || vehicle.Status != "Active") return Missing("Mẫu xe không tồn tại hoặc chưa hoạt động.");
+            if (vehicle.BatteryCapacityKWh != dto.BatteryCapacityKWh)
+                return Fail("Dung lượng pin không khớp mẫu xe trên máy chủ.");
+            if (!await db.UserVehicles.AnyAsync(v => v.DriverId == driver.Id && v.VehicleModelId == dto.VehicleModelId))
+                return Fail("Xe chưa có trong hồ sơ tài xế. Hãy thêm xe trước khi sạc.");
+            var booking = await db.Bookings.FirstOrDefaultAsync(b => b.Id == dto.BookingId &&
+                b.BookedBy == accountId && !b.IsDeleted);
+            if (booking == null || booking.ConnectorId != dto.ConnectorId || booking.VehicleModelId != dto.VehicleModelId ||
+                booking.Status != "InProgress" || DateTime.Now < booking.StartTime.AddMinutes(-15) || DateTime.Now > booking.EndTime)
+                return Fail("Lịch đặt chưa check-in, hết hiệu lực hoặc không khớp xe/cổng của bạn.");
+            var connector = await db.Set<Connector>().Include(c => c.ChargingPost)
+                .ThenInclude(p => p.ChargingStationNavigation)
+                .FirstOrDefaultAsync(c => c.Id == dto.ConnectorId && !c.IsDeleted);
+            if (connector == null || connector.ChargingPost.IsDeleted ||
+                connector.ChargingPost.ChargingStationNavigation.IsDeleted)
+                return Missing("Không tìm thấy cổng, trụ hoặc trạm sạc.");
+            if (connector.Status != "InUse" || !connector.IsPluggedIn || connector.IsLocked)
+                return Fail("Cổng chưa được cắm vào xe, đang bận hoặc còn hóa đơn chưa thanh toán.");
+            if (connector.ChargingPost.Status != "Available" && connector.ChargingPost.Status != "Busy")
+                return Fail("Trụ sạc không hoạt động.");
+            if (connector.ChargingPost.ChargingStationNavigation.Status != "Active" &&
+                connector.ChargingPost.ChargingStationNavigation.Status != "Busy")
+                return Fail("Trạm sạc không hoạt động.");
+            if (connector.ChargingPost.VehicleTypeSupported != vehicle.VehicleType)
+                return Fail("Loại xe không tương thích với trụ sạc.");
+            var now = DateTime.Now;
+            var session = new ChargingSession
+            {
+                Id = Guid.NewGuid(), ConnectorId = connector.Id, ChargingPostId = connector.ChargingPostId,
+                UserId = accountId, DriverId = driver.Id, VehicleModelId = dto.VehicleModelId, BookingId = dto.BookingId,
+                BatteryCapacityKWh = dto.BatteryCapacityKWh, InitialBatteryLevelPercent = dto.InitialBatteryLevelPercent,
+                ExpectedEnergiesKWh = dto.ExpectedEnergiesKWh, PowerRateKW = connector.ChargingPost.MaxPowerKw,
+                StartTime = now, CreatedAt = now, UpdatedAt = now, Status = "Charging"
+            };
+            connector.Status = "Charging";
+            connector.IsLocked = true;
+            connector.UpdatedAt = now;
+            db.ChargingSessions.Add(session);
+            await db.SaveChangesAsync();
+            return Snapshot(session);
+        });
+
+    public Task<IServiceResult> Stop(ChargingSessionStopDto dto, Guid sessionId, Guid? accountId = null) =>
+        DatabaseWork.Write(db, async () =>
+        {
+            if (accountId == null) return Fail("Không xác định được tài xế.");
+            var session = await db.ChargingSessions.Include(s => s.Connector).FirstOrDefaultAsync(s =>
+                s.Id == sessionId && !s.IsDeleted && s.UserId == accountId);
+            if (session == null) return Missing("Không tìm thấy phiên sạc của bạn.");
+            var energy = dto.EnergyDeliveredKWh;
+            if (energy == null || !double.IsFinite(energy.Value) || energy < 0 ||
+                energy > session.BatteryCapacityKWh || energy < session.EnergyDeliveredKWh)
+                return Fail("Số đo điện năng không hợp lệ. Cần số đo thực từ cổng sạc.");
+            if (session.Status == "Completed" && session.EnergyDeliveredKWh == energy)
+                return Snapshot(session);
+            if (session.Status != "Charging") return Fail("Phiên không ở trạng thái đang sạc.");
+            var price = await db.SystemConfigurations.AsNoTracking().Where(c =>
+                !c.IsDeleted && c.Name == "PRICE_PER_kWH" && c.EffectedDateFrom <= DateTime.Now &&
+                (c.EffectedDateTo == null || c.EffectedDateTo >= DateTime.Now))
+                .OrderByDescending(c => c.EffectedDateFrom).FirstOrDefaultAsync();
+            if (price?.MinValue == null || price.MinValue <= 0)
+                return Fail("Máy chủ chưa cấu hình đơn giá điện hợp lệ.");
+            session.EnergyDeliveredKWh = energy.Value;
+            session.Cost = decimal.Round((decimal)energy.Value * price.MinValue.Value, 2, MidpointRounding.AwayFromZero);
+            session.Status = "Completed";
+            session.EndTime = session.UpdatedAt = DateTime.Now;
+            session.Connector.Status = "InUse";
+            session.Connector.UpdatedAt = DateTime.Now;
+            await db.SaveChangesAsync();
+            return Snapshot(session);
+        });
+
+    private static IServiceResult Snapshot(ChargingSession? session) => session == null
+        ? Missing("Không tìm thấy phiên sạc.")
+        : new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, session.Adapt<ChargingSessionViewDetailDto>());
+    private static IServiceResult Fail(string message) => new ServiceResult(Const.FAIL_UPDATE_CODE, message);
+    private static IServiceResult Missing(string message) => new ServiceResult(Const.WARNING_NO_DATA_CODE, message);
 }

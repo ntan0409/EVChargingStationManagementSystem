@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/payment_provider.dart';
-import '../widgets/empty_state.dart';
+import '../widgets/api_problem.dart';
 import '../widgets/status_badge.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
-
   @override
-  State<TransactionHistoryScreen> createState() => _TransactionHistoryScreenState();
+  State<TransactionHistoryScreen> createState() =>
+      _TransactionHistoryScreenState();
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
@@ -18,96 +17,95 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PaymentProvider>(context, listen: false).fetchHistory();
+      if (mounted) _load();
     });
   }
 
+  Future<void> _load() => context.read<PaymentProvider>().fetchHistory();
   @override
   Widget build(BuildContext context) {
-    final paymentProvider = context.watch<PaymentProvider>();
-
+    final provider = context.watch<PaymentProvider>();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch Sử Giao Dịch & Hóa Đơn'),
-      ),
+      appBar: AppBar(title: const Text('Lịch Sử Giao Dịch')),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await paymentProvider.fetchHistory();
-        },
-        child: paymentProvider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : paymentProvider.history.isEmpty
-                ? const EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Chưa có hóa đơn nào',
-                    description: 'Tất cả các giao dịch và hóa đơn sạc xe điện của bạn sẽ hiển thị tại đây.',
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: paymentProvider.history.length,
-                    itemBuilder: (context, index) {
-                      final item = paymentProvider.history[index];
-                      return Card(
-                        elevation: 1.5,
-                        margin: const EdgeInsets.only(bottom: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      item.stationName ?? 'Trạm sạc EV Hub',
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Text(
-                                    Formatters.formatCurrency(item.amount),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryDark,
-                                    ),
-                                  ),
-                                ],
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text(
+              'Các bút toán đã được máy chủ ghi nhận. Yêu cầu thanh toán đang chờ chưa phải giao dịch hoàn tất.',
+            ),
+            const SizedBox(height: 16),
+            if (provider.historyLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (provider.historyError != null)
+              ApiProblem(message: provider.historyError!, onRetry: _load)
+            else if (provider.history.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Chưa có giao dịch nào',
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              for (final item in provider.history)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.referenceCode,
+                                style: Theme.of(context).textTheme.titleMedium,
                               ),
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    Formatters.formatDateTime(item.paymentDate),
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                  ),
-                                  StatusBadge(status: item.paymentStatus),
-                                ],
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                Formatters.formatCurrency(item.amount),
                               ),
-                              const Divider(height: 18),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Phương thức: ${item.paymentMethod}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  Text(
-                                    'Điện nạp: ${Formatters.formatEnergy(item.energyDeliveredKWh)}',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
+                        const SizedBox(height: 8),
+                        Text(
+                          item.paymentMethod == 'OFFLINE'
+                              ? 'Tiền mặt'
+                              : item.transactionType,
+                        ),
+                        StatusBadge(status: item.status),
+                        if (item.initiatedAt != null &&
+                            item.initiatedAt!.year > 1)
+                          Text(
+                            'Khởi tạo: ${Formatters.formatDateTime(item.initiatedAt!)}',
+                          ),
+                        if (item.completedAt != null)
+                          Text(
+                            'Hoàn tất: ${Formatters.formatDateTime(item.completedAt!)}',
+                          ),
+                        if (item.paymentReference != null)
+                          SelectableText(
+                            'Tham chiếu thanh toán: ${item.paymentReference}',
+                          ),
+                        if (item.chargingSessionId != null)
+                          SelectableText(
+                            'Mã phiên sạc: ${item.chargingSessionId}',
+                          ),
+                        if (item.paymentId != null)
+                          SelectableText('Mã thanh toán: ${item.paymentId}'),
+                        SelectableText('Mã giao dịch: ${item.id}'),
+                      ],
+                    ),
                   ),
+                ),
+          ],
+        ),
       ),
     );
   }

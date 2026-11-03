@@ -5,6 +5,7 @@
         Initiated,
         Successed,
         Failed,
+        Cancelled,
         Unknown
     }
 }

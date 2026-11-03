@@ -7,6 +7,7 @@ namespace Common.DTOs.ChargingStationDto
     public class ChargingStationsViewDetailDto
     {
         public Guid Id { get; set; }
+        public decimal? PricePerKWh { get; set; }
         public string StationName { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Province { get; set; } = string.Empty;

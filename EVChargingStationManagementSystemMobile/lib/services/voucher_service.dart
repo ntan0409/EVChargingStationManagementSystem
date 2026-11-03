@@ -1,79 +1,71 @@
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
+import '../core/network/api_contract.dart';
 import '../core/network/api_response.dart';
 import '../models/voucher_model.dart';
 
 class VoucherService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient;
+  VoucherService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
 
-  // Get available vouchers
   Future<ApiResponse<List<VoucherModel>>> getAvailableVouchers() async {
     final response = await _apiClient.get<List<VoucherModel>>(
       ApiConstants.availableVouchers,
-      fromJson: (data) {
-        if (data is List) {
-          return data
-              .map((item) => VoucherModel.fromJson(item as Map<String, dynamic>))
-              .toList();
-        }
-        return [];
-      },
+      fromJson: (value) => contractList(value, VoucherModel.fromJson),
     );
-
-    if (!response.success || response.data == null || response.data!.isEmpty) {
-      return ApiResponse.success(_mockVouchers);
+    if (response.statusCode == 404) {
+      return ApiResponse.success([], statusCode: 404);
     }
-
     return response;
   }
 
-  // Redeem voucher
-  Future<ApiResponse<dynamic>> redeemVoucher(String voucherId) async {
-    return await _apiClient.post(
-      '${ApiConstants.redeemVoucher}$voucherId',
+  Future<ApiResponse<List<UserVoucherModel>>> getMyVouchers() async {
+    final response = await _apiClient.get<List<UserVoucherModel>>(
+      ApiConstants.myVouchers,
+      fromJson: (value) => contractList(value, UserVoucherModel.fromJson),
     );
+    if (response.statusCode == 404) {
+      return ApiResponse.success([], statusCode: 404);
+    }
+    return response;
   }
 
-  // Use voucher on session
-  Future<ApiResponse<dynamic>> useVoucher(String userVoucherId, String sessionId) async {
-    return await _apiClient.post(
-      '${ApiConstants.useVoucher}$userVoucherId/$sessionId',
-    );
-  }
+  Future<ApiResponse<UserVoucherModel>> redeemVoucher(String voucherId) =>
+      _apiClient.post(
+        '${ApiConstants.redeemVoucher}${Uri.encodeComponent(voucherId)}',
+        fromJson: (value) {
+          final voucher = UserVoucherModel.fromJson(contractMap(value));
+          if (voucher.voucherId != voucherId || voucher.status != 'Redeemed') {
+            throw const FormatException('Unconfirmed redemption');
+          }
+          return voucher;
+        },
+      );
+  Future<ApiResponse<UserVoucherModel>> useVoucher(
+    String userVoucherId,
+    String sessionId,
+  ) => _apiClient.post(
+    '${ApiConstants.useVoucher}${Uri.encodeComponent(userVoucherId)}/${Uri.encodeComponent(sessionId)}',
+    fromJson: (value) {
+      final voucher = UserVoucherModel.fromJson(contractMap(value));
+      if (voucher.id != userVoucherId ||
+          voucher.sessionId != sessionId ||
+          voucher.status != 'Used') {
+        throw const FormatException('Unconfirmed voucher application');
+      }
+      return voucher;
+    },
+  );
 
-  static final List<VoucherModel> _mockVouchers = [
-    VoucherModel(
-      id: 'vc-001',
-      code: 'EVGREEN20',
-      description: 'Giảm 20% tối đa 50.000đ cho phiên sạc đầu tiên trong tháng',
-      discountPercent: 20,
-      maxDiscountAmount: 50000,
-      minOrderAmount: 50000,
-      validFrom: DateTime.now().subtract(const Duration(days: 5)),
-      validTo: DateTime.now().add(const Duration(days: 25)),
-      pointsRequired: 50,
-    ),
-    VoucherModel(
-      id: 'vc-002',
-      code: 'FASTCHARGE15',
-      description: 'Giảm 15% tối đa 30.000đ cho các trụ sạc nhanh DC Super Fast',
-      discountPercent: 15,
-      maxDiscountAmount: 30000,
-      minOrderAmount: 40000,
-      validFrom: DateTime.now().subtract(const Duration(days: 2)),
-      validTo: DateTime.now().add(const Duration(days: 15)),
-      pointsRequired: 40,
-    ),
-    VoucherModel(
-      id: 'vc-003',
-      code: 'WEEKEND10',
-      description: 'Giảm 10% tối đa 20.000đ vào thứ Bảy và Chủ Nhật',
-      discountPercent: 10,
-      maxDiscountAmount: 20000,
-      minOrderAmount: 30000,
-      validFrom: DateTime.now(),
-      validTo: DateTime.now().add(const Duration(days: 30)),
-      pointsRequired: 30,
-    ),
-  ];
+  Future<ApiResponse<int>> getPoints() => _apiClient.get(
+    ApiConstants.driverProfile,
+    fromJson: (value) {
+      final points = contractMap(value)['score'];
+      if (points is! int || points < 0) {
+        throw const FormatException('Invalid points');
+      }
+      return points;
+    },
+  );
 }

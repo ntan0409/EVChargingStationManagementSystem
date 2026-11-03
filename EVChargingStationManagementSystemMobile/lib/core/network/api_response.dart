@@ -1,9 +1,21 @@
+enum ApiErrorType {
+  http,
+  network,
+  timeout,
+  tls,
+  parse,
+  configuration,
+  cancelled,
+  unknown,
+}
+
 class ApiResponse<T> {
   final bool success;
   final String message;
   final T? data;
   final dynamic errors;
   final int? statusCode;
+  final ApiErrorType? errorType;
 
   ApiResponse({
     required this.success,
@@ -11,6 +23,7 @@ class ApiResponse<T> {
     this.data,
     this.errors,
     this.statusCode,
+    this.errorType,
   });
 
   factory ApiResponse.success(T? data, {String message = '', int? statusCode}) {
@@ -22,12 +35,18 @@ class ApiResponse<T> {
     );
   }
 
-  factory ApiResponse.error(String message, {dynamic errors, int? statusCode}) {
+  factory ApiResponse.error(
+    String message, {
+    dynamic errors,
+    int? statusCode,
+    ApiErrorType? errorType,
+  }) {
     return ApiResponse(
       success: false,
       message: message,
       errors: errors,
       statusCode: statusCode,
+      errorType: errorType,
     );
   }
 }

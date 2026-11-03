@@ -6,7 +6,8 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+  final AuthService? authService;
+  const ChangePasswordScreen({super.key, this.authService});
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -17,7 +18,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
+  late final _authService = widget.authService ?? AuthService();
   bool _isLoading = false;
 
   @override
@@ -33,23 +34,29 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     setState(() => _isLoading = true);
     final res = await _authService.changePassword(
-      oldPassword: _oldPasswordController.text.trim(),
-      newPassword: _newPasswordController.text.trim(),
-      confirmPassword: _confirmPasswordController.text.trim(),
+      oldPassword: _oldPasswordController.text,
+      newPassword: _newPasswordController.text,
+      confirmPassword: _confirmPasswordController.text,
     );
-    setState(() => _isLoading = false);
-
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
     if (res.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đổi mật khẩu thành công!'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Đổi mật khẩu thành công!'),
+          backgroundColor: AppColors.success,
+        ),
       );
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(res.message.isNotEmpty ? res.message : 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.'),
+          content: Text(
+            res.message.isNotEmpty
+                ? res.message
+                : 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -59,9 +66,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Đổi Mật Khẩu'),
-      ),
+      appBar: AppBar(title: const Text('Đổi Mật Khẩu')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Form(
@@ -74,8 +79,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 hintText: 'Nhập mật khẩu đang dùng',
                 controller: _oldPasswordController,
                 isPassword: true,
-                prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
-                validator: (val) => Validators.requiredField(val, message: 'Vui lòng nhập mật khẩu hiện tại'),
+                prefixIcon: const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.primary,
+                ),
+                validator: (val) => Validators.requiredField(
+                  val,
+                  message: 'Vui lòng nhập mật khẩu hiện tại',
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -84,7 +95,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 hintText: 'Tối thiểu 6 ký tự',
                 controller: _newPasswordController,
                 isPassword: true,
-                prefixIcon: const Icon(Icons.lock_reset_outlined, color: AppColors.primary),
+                prefixIcon: const Icon(
+                  Icons.lock_reset_outlined,
+                  color: AppColors.primary,
+                ),
                 validator: Validators.password,
               ),
               const SizedBox(height: 16),
@@ -94,8 +108,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 hintText: 'Nhập lại mật khẩu mới',
                 controller: _confirmPasswordController,
                 isPassword: true,
-                prefixIcon: const Icon(Icons.verified_outlined, color: AppColors.primary),
-                validator: (val) => Validators.confirmPassword(val, _newPasswordController.text),
+                prefixIcon: const Icon(
+                  Icons.verified_outlined,
+                  color: AppColors.primary,
+                ),
+                validator: (val) => Validators.confirmPassword(
+                  val,
+                  _newPasswordController.text,
+                ),
               ),
               const SizedBox(height: 32),
 

@@ -1,87 +1,77 @@
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
+import '../core/network/api_contract.dart';
 import '../core/network/api_response.dart';
 import '../models/payment_model.dart';
+import '../models/transaction_model.dart';
 
 class PaymentService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient;
+  PaymentService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
 
-  // Create VNPay Payment URL
-  Future<ApiResponse<String>> createVNPayUrl(String sessionId) async {
-    final response = await _apiClient.post<dynamic>(
-      '${ApiConstants.paymentCreateUrl}?sessionId=$sessionId',
-    );
+  Future<ApiResponse<String>> createVNPayUrl(String sessionId) =>
+      _apiClient.post(
+        ApiConstants.paymentCreateUrl,
+        queryParameters: {'sessionId': sessionId},
+        fromJson: (value) {
+          if (value is! String) throw const FormatException('Missing URL');
+          final uri = Uri.tryParse(value);
+          if (uri == null ||
+              uri.scheme != 'https' ||
+              uri.host.isEmpty ||
+              uri.userInfo.isNotEmpty ||
+              (uri.queryParameters['vnp_SecureHash'] ?? '').isEmpty) {
+            throw const FormatException('Invalid gateway URL');
+          }
+          return value;
+        },
+      );
 
-    if (response.success && response.data != null) {
-      if (response.data is String) {
-        return ApiResponse.success(response.data as String);
-      } else if (response.data is Map && response.data['data'] != null) {
-        return ApiResponse.success(response.data['data'].toString());
+  Future<ApiResponse<PaymentModel>> createPaymentOffline(String sessionId) =>
+      _apiClient.post(
+        ApiConstants.paymentOffline,
+        queryParameters: {'sessionId': sessionId},
+        fromJson: (value) {
+          final payment = PaymentModel.fromJson(contractMap(value));
+          if (payment.sessionId.toLowerCase() != sessionId.toLowerCase()) {
+            throw const FormatException('Wrong payment session');
+          }
+          return payment;
+        },
+      );
+
+  Future<ApiResponse<SessionPaymentModel>> getSessionPayment(
+    String sessionId,
+  ) => _apiClient.get(
+    '${ApiConstants.paymentForSession}${Uri.encodeComponent(sessionId)}',
+    fromJson: (value) {
+      final quote = SessionPaymentModel.fromJson(contractMap(value));
+      if (quote.sessionId.toLowerCase() != sessionId.toLowerCase()) {
+        throw const FormatException('Wrong invoice');
       }
-    }
+      return quote;
+    },
+  );
 
-    // Fallback sandbox mock VNPay URL
-    return ApiResponse.success(
-      'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=10000000&vnp_Command=pay&vnp_CreateDate=20260922000000&vnp_CurrCode=VND&vnp_IpAddr=127.0.0.1&vnp_Locale=vn&vnp_OrderInfo=Thanh+toan+phien+sac+EV&vnp_OrderType=other&vnp_ReturnUrl=https%3A%2F%2Flocalhost%3A7252%2Fapi%2FPayment%2Fvnpay%2Fipn&vnp_TmnCode=DEMO&vnp_TxnRef=$sessionId',
-    );
-  }
+  Future<ApiResponse<List<PaymentMethodModel>>> getMethods() => _apiClient.get(
+    ApiConstants.paymentMethods,
+    fromJson: (value) => contractList(value, PaymentMethodModel.fromJson),
+  );
 
-  // Create Payment Offline Record
-  Future<ApiResponse<dynamic>> createPaymentOffline(String sessionId) async {
-    return await _apiClient.post(
-      '${ApiConstants.paymentOffline}?sessionId=$sessionId',
-    );
-  }
-
-  // Get Payment History / Driver Transactions
-  Future<ApiResponse<List<PaymentModel>>> getPaymentHistory() async {
-    final response = await _apiClient.get<List<PaymentModel>>(
+  Future<ApiResponse<List<TransactionModel>>> getPaymentHistory() async {
+    final response = await _apiClient.get<List<TransactionModel>>(
       ApiConstants.driverTransactions,
-      fromJson: (data) {
-        if (data is List) {
-          return data
-              .map((item) => PaymentModel.fromJson(item as Map<String, dynamic>))
-              .toList();
-        }
-        return [];
-      },
+      fromJson: (value) => contractList(value, TransactionModel.fromJson),
     );
-
-    if (!response.success || response.data == null || response.data!.isEmpty) {
-      return ApiResponse.success(_mockPayments);
+    // This particular list endpoint uses 404 for an empty collection.
+    if (response.statusCode == 404) {
+      return ApiResponse.success(
+        [],
+        statusCode: 404,
+        message: response.message,
+      );
     }
-
     return response;
   }
-
-  static final List<PaymentModel> _mockPayments = [
-    PaymentModel(
-      id: 'pay-001',
-      sessionId: 'sess-001',
-      amount: 115500,
-      subtotal: 105000,
-      vat: 10500,
-      discount: 0,
-      paymentMethod: 'VNPay',
-      paymentStatus: 'Paid',
-      paymentDate: DateTime.now().subtract(const Duration(days: 1)),
-      transactionCode: 'VNP14829104',
-      stationName: 'Trạm Sạc EV Hub - Landmark 81',
-      energyDeliveredKWh: 30.0,
-    ),
-    PaymentModel(
-      id: 'pay-002',
-      sessionId: 'sess-002',
-      amount: 85000,
-      subtotal: 95450,
-      vat: 9550,
-      discount: 20000,
-      paymentMethod: 'Tiền mặt (Offline)',
-      paymentStatus: 'Paid',
-      paymentDate: DateTime.now().subtract(const Duration(days: 3)),
-      transactionCode: 'OFF92817234',
-      stationName: 'Trạm Sạc EV Sài Gòn Centre',
-      energyDeliveredKWh: 24.5,
-    ),
-  ];
 }

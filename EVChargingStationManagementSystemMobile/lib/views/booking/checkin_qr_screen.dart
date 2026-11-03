@@ -12,12 +12,20 @@ class CheckinQrScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final checkInCode = booking.checkInCode ?? '8942';
+    final checkInCode = booking.checkInCode;
+    if (checkInCode == null || checkInCode.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mã Check-in')),
+        body: const Center(
+          child: Text(
+            'Máy chủ chưa cung cấp mã check-in. Hãy tải lại lịch đặt.',
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mã Check-in Trạm Sạc'),
-      ),
+      appBar: AppBar(title: const Text('Mã Check-in Trạm Sạc')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
@@ -41,13 +49,19 @@ class CheckinQrScreen extends StatelessWidget {
                   children: [
                     Text(
                       booking.stationName ?? 'Trạm sạc EV Hub',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       booking.location ?? '',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
@@ -58,7 +72,10 @@ class CheckinQrScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 2),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.3),
+                          width: 2,
+                        ),
                       ),
                       child: QrImageView(
                         data: 'EV_CHECKIN:${booking.id}:$checkInCode',
@@ -78,11 +95,18 @@ class CheckinQrScreen extends StatelessWidget {
 
                     const Text(
                       'MÃ XÁC THỰC CHECK-IN',
-                      style: TextStyle(fontSize: 12, color: Colors.grey, letterSpacing: 1.2),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
@@ -106,7 +130,10 @@ class CheckinQrScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Thời gian sạc:'),
-                        Text(Formatters.formatDateTime(booking.startTime), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          Formatters.formatDateTime(booking.startTime),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -114,7 +141,10 @@ class CheckinQrScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Xe đã đăng ký:'),
-                        Text(booking.vehicleName ?? 'VinFast VF8', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          booking.vehicleName ?? 'Chưa có thông tin xe',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -122,7 +152,10 @@ class CheckinQrScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Ước tính năng lượng:'),
-                        Text('${booking.estimatedEnergyKWh ?? 30.0} kWh', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          '${booking.estimatedEnergyKWh ?? 30.0} kWh',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ],
@@ -132,7 +165,11 @@ class CheckinQrScreen extends StatelessWidget {
 
               Text(
                 'Hướng dẫn: Hãy đưa mã QR này trước camera của trụ sạc hoặc nhập mã 4 số vào màn hình cảm ứng của trạm để mở khóa cổng sạc.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 28),

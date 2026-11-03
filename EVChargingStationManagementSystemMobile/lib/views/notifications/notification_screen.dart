@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/notification_provider.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/api_problem.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -18,9 +19,11 @@ class NotificationScreen extends StatelessWidget {
         actions: [
           if (notifProvider.notifications.isNotEmpty)
             TextButton(
-              onPressed: () {
-                notifProvider.markAllAsRead();
-              },
+              onPressed: notifProvider.isMutating
+                  ? null
+                  : () {
+                      notifProvider.markAllAsRead();
+                    },
               child: const Text('Đọc tất cả'),
             ),
         ],
@@ -29,11 +32,19 @@ class NotificationScreen extends StatelessWidget {
         onRefresh: () async {
           await notifProvider.fetchNotifications();
         },
-        child: notifProvider.notifications.isEmpty
+        child: notifProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : notifProvider.errorMessage != null
+            ? ApiProblem(
+                message: notifProvider.errorMessage!,
+                onRetry: notifProvider.fetchNotifications,
+              )
+            : notifProvider.notifications.isEmpty
             ? const EmptyState(
                 icon: Icons.notifications_none_outlined,
                 title: 'Không có thông báo mới',
-                description: 'Các cập nhật về phiên sạc, lịch đặt và ưu đãi sẽ xuất hiện ở đây.',
+                description:
+                    'Các cập nhật về phiên sạc, lịch đặt và ưu đãi sẽ xuất hiện ở đây.',
               )
             : ListView.builder(
                 padding: const EdgeInsets.all(16.0),
@@ -46,11 +57,15 @@ class NotificationScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: item.isRead ? Colors.transparent : AppColors.primary.withOpacity(0.3),
+                        color: item.isRead
+                            ? Colors.transparent
+                            : AppColors.primary.withOpacity(0.3),
                         width: 1,
                       ),
                     ),
-                    color: item.isRead ? Theme.of(context).cardColor : AppColors.primary.withOpacity(0.04),
+                    color: item.isRead
+                        ? Theme.of(context).cardColor
+                        : AppColors.primary.withOpacity(0.04),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
                       onTap: () {
@@ -64,7 +79,9 @@ class NotificationScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: _getIconColor(item.type).withOpacity(0.12),
+                                color: _getIconColor(
+                                  item.type,
+                                ).withOpacity(0.12),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -79,14 +96,17 @@ class NotificationScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Expanded(
                                         child: Text(
                                           item.title,
                                           style: TextStyle(
                                             fontSize: 15,
-                                            fontWeight: item.isRead ? FontWeight.w600 : FontWeight.bold,
+                                            fontWeight: item.isRead
+                                                ? FontWeight.w600
+                                                : FontWeight.bold,
                                           ),
                                         ),
                                       ),
@@ -113,7 +133,10 @@ class NotificationScreen extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Text(
                                     Formatters.formatDateTime(item.createdAt),
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
                                   ),
                                 ],
                               ),

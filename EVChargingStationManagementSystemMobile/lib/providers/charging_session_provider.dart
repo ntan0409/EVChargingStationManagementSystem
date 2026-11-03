@@ -1,35 +1,50 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../core/network/api_response.dart';
 import '../models/charging_session_model.dart';
 import '../services/charging_service.dart';
 
 class ChargingSessionProvider extends ChangeNotifier {
-  final ChargingService _chargingService = ChargingService();
-
+  final ChargingService _chargingService;
+  final Duration? pollInterval;
+  ChargingSessionProvider({
+    ChargingService? chargingService,
+    this.pollInterval = const Duration(seconds: 5),
+  }) : _chargingService = chargingService ?? ChargingService();
   ChargingSessionModel? _currentSession;
-  Timer? _telemetryTimer;
+  Timer? _pollTimer;
   bool _isLoading = false;
+  bool _refreshing = false;
+  bool _disposed = false;
+  bool _needsReconciliation = false;
+  int _epoch = 0;
   String? _errorMessage;
-
-  // Real-time telemetry extras
-  double _currentPowerKW = 60.0;
-  double _currentVoltageV = 398.5;
-  double _currentAmperageA = 150.2;
-  double _pricePerKWh = 3850.0;
-  double _vatRate = 10.0;
+  String? _account;
 
   ChargingSessionModel? get currentSession => _currentSession;
-  bool get isCharging => _currentSession != null && _currentSession!.status == 'Charging';
+  bool get isCharging => _currentSession?.status == 'Charging';
   bool get isLoading => _isLoading;
+  bool get needsReconciliation => _needsReconciliation;
   String? get errorMessage => _errorMessage;
 
-  double get currentPowerKW => _currentPowerKW;
-  double get currentVoltageV => _currentVoltageV;
-  double get currentAmperageA => _currentAmperageA;
-  double get pricePerKWh => _pricePerKWh;
-  double get vatRate => _vatRate;
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
 
-  // Start Charging Session
+  bool _active(int epoch) => !_disposed && epoch == _epoch;
+  void bindAccount(String? account) {
+    if (_account == account) return;
+    _account = account;
+    _epoch++;
+    _pollTimer?.cancel();
+    _currentSession = null;
+    _isLoading = false;
+    _refreshing = false;
+    _needsReconciliation = false;
+    _errorMessage = null;
+    scheduleMicrotask(_notify);
+  }
+
   Future<bool> startCharging({
     required String connectorId,
     required int batteryCapacityKWh,
@@ -38,15 +53,21 @@ class ChargingSessionProvider extends ChangeNotifier {
     String? phone,
     String? vehicleModelId,
     String? bookingId,
-    double stationPowerKw = 60.0,
-    double price = 3850.0,
+    double? stationPowerKw,
+    double? price,
   }) async {
+    if (_disposed || _isLoading) return false;
+    if (_needsReconciliation ||
+        (_currentSession != null && _currentSession!.status != 'Paid')) {
+      _errorMessage =
+          'Hãy kiểm tra và xử lý phiên hiện tại trước khi tạo phiên mới.';
+      _notify();
+      return false;
+    }
+    final epoch = ++_epoch;
     _isLoading = true;
     _errorMessage = null;
-    _pricePerKWh = price;
-    _currentPowerKW = stationPowerKw;
-    notifyListeners();
-
+    _notify();
     try {
       final response = await _chargingService.startSession(
         connectorId: connectorId,
@@ -57,120 +78,175 @@ class ChargingSessionProvider extends ChangeNotifier {
         vehicleModelId: vehicleModelId,
         bookingId: bookingId,
       );
-
-      _isLoading = false;
-      if (response.success && response.data != null) {
-        _currentSession = response.data;
-        _startTelemetryTimer();
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = response.message;
-        notifyListeners();
+      if (!_active(epoch)) return false;
+      if (!response.success ||
+          response.data == null ||
+          response.data!.status != 'Charging') {
+        _errorMessage = response.message.isEmpty
+            ? 'Máy chủ chưa xác nhận bắt đầu sạc.'
+            : response.message;
+        _needsReconciliation =
+            response.statusCode == null ||
+            response.statusCode! >= 500 ||
+            response.errorType == ApiErrorType.parse;
         return false;
       }
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
+      _currentSession = response.data;
+      _needsReconciliation = false;
+      _poll();
+      return true;
+    } catch (_) {
+      if (_active(epoch)) {
+        _needsReconciliation = true;
+        _errorMessage =
+            'Chưa xác nhận được kết quả. Kiểm tra phiên trước khi tạo lại.';
+      }
+      return false;
+    } finally {
+      if (_active(epoch)) {
+        _isLoading = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<bool> restoreSession() async {
+    if (_disposed || _isLoading) return false;
+    final epoch = ++_epoch;
+    _isLoading = true;
+    _errorMessage = null;
+    _notify();
+    try {
+      final response = await _chargingService.getCurrentSession();
+      if (!_active(epoch)) return false;
+      if (response.statusCode == 404) {
+        _currentSession = null;
+        _needsReconciliation = false;
+        _pollTimer?.cancel();
+        return true;
+      }
+      if (!response.success || response.data == null) {
+        _errorMessage = response.message;
+        return false;
+      }
+      _currentSession = response.data;
+      _needsReconciliation = false;
+      _poll();
+      return true;
+    } catch (_) {
+      if (_active(epoch)) _errorMessage = 'Không tải được phiên hiện tại.';
+      return false;
+    } finally {
+      if (_active(epoch)) {
+        _isLoading = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<bool> refreshSession() async {
+    final session = _currentSession;
+    if (session == null) return restoreSession();
+    if (_disposed || _isLoading || _refreshing) return false;
+    final epoch = _epoch;
+    _refreshing = true;
+    try {
+      final response = await _chargingService.getSessionById(session.id);
+      if (!_active(epoch)) return false;
+      if (!response.success || response.data == null) {
+        _errorMessage = response.message;
+        _notify();
+        return false;
+      }
+      _currentSession = response.data;
+      _needsReconciliation = false;
+      _errorMessage = null;
+      if (!isCharging) _pollTimer?.cancel();
+      _notify();
+      return true;
+    } catch (_) {
+      if (_active(epoch)) {
+        _errorMessage =
+            'Không tải được trạng thái phiên. Dữ liệu hiển thị có thể đã cũ.';
+        _notify();
+      }
+      return false;
+    } finally {
+      if (_active(epoch)) _refreshing = false;
+    }
+  }
+
+  Future<bool> stopCharging({double? energyDeliveredKWh}) async {
+    if (_disposed || _isLoading || _currentSession == null) return false;
+    if (energyDeliveredKWh == null ||
+        !energyDeliveredKWh.isFinite ||
+        energyDeliveredKWh < 0) {
+      _errorMessage =
+          'Nhập số đo điện năng thực từ cổng sạc (kWh) để dừng phiên.';
+      _notify();
       return false;
     }
-  }
-
-  // Stop Charging Session
-  Future<bool> stopCharging() async {
-    if (_currentSession == null) return false;
-
+    final epoch = ++_epoch;
+    final id = _currentSession!.id;
     _isLoading = true;
-    notifyListeners();
-
-    _telemetryTimer?.cancel();
-    _telemetryTimer = null;
-
+    _errorMessage = null;
+    _notify();
     try {
-      await _chargingService.stopSession(_currentSession!.id);
-      _currentSession = _currentSession!.copyWith(
-        status: 'Completed',
-        endTime: DateTime.now(),
+      final response = await _chargingService.stopSession(
+        id,
+        energyDeliveredKWh: energyDeliveredKWh,
       );
-      _isLoading = false;
-      notifyListeners();
+      if (!_active(epoch)) return false;
+      if (!response.success ||
+          response.data == null ||
+          response.data!.status != 'Completed') {
+        _errorMessage = response.message.isEmpty
+            ? 'Máy chủ chưa xác nhận dừng sạc.'
+            : response.message;
+        return false;
+      }
+      _currentSession = response.data;
+      _pollTimer?.cancel();
       return true;
-    } catch (e) {
-      _currentSession = _currentSession!.copyWith(
-        status: 'Completed',
-        endTime: DateTime.now(),
-      );
-      _isLoading = false;
-      notifyListeners();
-      return true;
+    } catch (_) {
+      if (_active(epoch)) {
+        _errorMessage = 'Chưa xác nhận dừng sạc. Hãy kiểm tra trạng thái.';
+      }
+      return false;
+    } finally {
+      if (_active(epoch)) {
+        _isLoading = false;
+        _refreshing = false;
+        _notify();
+      }
     }
   }
 
-  // Clear Session after payment
   void resetSession() {
-    _telemetryTimer?.cancel();
-    _telemetryTimer = null;
+    _epoch++;
+    _pollTimer?.cancel();
     _currentSession = null;
-    notifyListeners();
+    _isLoading = false;
+    _refreshing = false;
+    _needsReconciliation = false;
+    _errorMessage = null;
+    _notify();
   }
 
-  // Telemetry loop: simulated IoT updates every second
-  void _startTelemetryTimer() {
-    _telemetryTimer?.cancel();
-    _telemetryTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_currentSession == null || _currentSession!.status != 'Charging') {
-        timer.cancel();
-        return;
-      }
-
-      final elapsed = _currentSession!.elapsedSeconds + 1;
-      
-      // Calculate energy added per second based on power: kWh = (kW * hours)
-      // For smooth demo visualization, add ~ 0.05 kWh per second
-      final energyIncrement = (_currentPowerKW / 3600.0) * 4.0; 
-      final totalEnergy = _currentSession!.totalEnergyConsumedKWh + energyIncrement;
-
-      // Calculate battery percent increase
-      final capacity = _currentSession!.batteryCapacityKWh;
-      final batteryPercentIncrease = (totalEnergy / capacity) * 100.0;
-      double newBattery = _currentSession!.initialBatteryLevelPercent + batteryPercentIncrease;
-
-      if (newBattery >= _currentSession!.expectedEnergiesKWh) {
-        newBattery = _currentSession!.expectedEnergiesKWh.toDouble();
-        _currentSession = _currentSession!.copyWith(
-          status: 'Completed',
-          currentBatteryPercent: newBattery,
-          totalEnergyConsumedKWh: totalEnergy,
-          cost: totalEnergy * _pricePerKWh * (1 + _vatRate / 100.0),
-          elapsedSeconds: elapsed,
-          endTime: DateTime.now(),
-        );
-        timer.cancel();
-        notifyListeners();
-        return;
-      }
-
-      // Fluctuations for realistic IoT reading
-      _currentVoltageV = 398.0 + (elapsed % 5) * 0.4;
-      _currentAmperageA = (_currentPowerKW * 1000) / _currentVoltageV;
-
-      final currentCost = totalEnergy * _pricePerKWh * (1 + _vatRate / 100.0);
-
-      _currentSession = _currentSession!.copyWith(
-        currentBatteryPercent: newBattery,
-        totalEnergyConsumedKWh: totalEnergy,
-        cost: currentCost,
-        elapsedSeconds: elapsed,
-      );
-
-      notifyListeners();
-    });
+  void _poll() {
+    _pollTimer?.cancel();
+    if (pollInterval != null && isCharging) {
+      _pollTimer = Timer.periodic(pollInterval!, (_) {
+        unawaited(refreshSession());
+      });
+    }
   }
 
   @override
   void dispose() {
-    _telemetryTimer?.cancel();
+    _disposed = true;
+    _epoch++;
+    _pollTimer?.cancel();
     super.dispose();
   }
 }

@@ -11,6 +11,7 @@ namespace Common.DTOs.VoucherDto
         public Guid Id { get; set; }
         public Guid EVDriverId { get; set; }
         public Guid VoucherId { get; set; }
+        public Guid? SessionId { get; set; }
         public Guid? StationId { get; set; }
         public DateTime AssignedDate { get; set; }
         public DateTime? RedeemDate { get; set; }

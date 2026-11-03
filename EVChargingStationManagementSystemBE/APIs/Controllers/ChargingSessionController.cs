@@ -9,6 +9,7 @@ namespace APIs.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "EVDriver,Admin,Staff")]
     public class ChargingSessionController(IChargingSessionService service) : ControllerBase
     {
         private readonly IChargingSessionService _service = service;
@@ -41,7 +42,7 @@ namespace APIs.Controllers
         [HttpGet("{sessionId}")]
         public async Task<IActionResult> GetById([FromRoute] Guid sessionId)
         {
-            var result = await _service.GetById(sessionId);
+            var result = await _service.GetById(sessionId, User.IsInRole("EVDriver") ? User.GetUserId() : null);
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -55,7 +56,7 @@ namespace APIs.Controllers
         [HttpGet("Connector/{connectorId}")]
         public async Task<IActionResult> GetByConnectorId([FromRoute] Guid connectorId)
         {
-            var result = await _service.GetByConnector(connectorId);
+            var result = await _service.GetByConnector(connectorId, User.IsInRole("EVDriver") ? User.GetUserId() : null);
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -67,12 +68,13 @@ namespace APIs.Controllers
         }
 
         [HttpPost("Start")]
+        [Authorize(Roles = "EVDriver")]
         public async Task<IActionResult> Start([FromBody]ChargingSessionStartDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _service.Start(dto);
+            var result = await _service.Start(dto, User.GetUserId());
 
             if (result.Status == Const.SUCCESS_CREATE_CODE && result.Data is ChargingSessionViewDetailDto createdDto)
                 return CreatedAtAction(nameof(GetById), new { sessionId = createdDto.Id },
@@ -88,9 +90,10 @@ namespace APIs.Controllers
         }
 
         [HttpPatch("Stop")]
+        [Authorize(Roles = "EVDriver")]
         public async Task<IActionResult> Stop([FromBody] ChargingSessionStopDto dto, Guid sessionId)
         {
-            var result = await _service.Stop(dto, sessionId);
+            var result = await _service.Stop(dto, sessionId, User.GetUserId());
 
             if (result.Status == Const.SUCCESS_UPDATE_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -101,6 +104,16 @@ namespace APIs.Controllers
             if (result.Status == Const.FAIL_UPDATE_CODE)
                 return Conflict(new { message = result.Message });
 
+            return StatusCode(500, new { message = result.Message });
+        }
+
+        [HttpGet("current")]
+        [Authorize(Roles = "EVDriver")]
+        public async Task<IActionResult> Current()
+        {
+            var result = await _service.GetCurrent(User.GetUserId());
+            if (result.Status == Const.SUCCESS_READ_CODE) return Ok(new { data = result.Data, message = result.Message });
+            if (result.Status == Const.WARNING_NO_DATA_CODE) return NotFound(new { message = result.Message });
             return StatusCode(500, new { message = result.Message });
         }
     }

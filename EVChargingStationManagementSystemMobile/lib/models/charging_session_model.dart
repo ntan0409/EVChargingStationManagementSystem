@@ -1,3 +1,5 @@
+import '../core/network/api_contract.dart';
+
 class ChargingSessionModel {
   final String id;
   final String chargingPostId;
@@ -15,6 +17,9 @@ class ChargingSessionModel {
   final double cost;
   final double currentBatteryPercent;
   final int elapsedSeconds;
+  final bool hasEnergy;
+  final bool hasCost;
+  final bool hasMeasuredBatteryPercent;
 
   ChargingSessionModel({
     required this.id,
@@ -33,36 +38,63 @@ class ChargingSessionModel {
     this.cost = 0.0,
     this.currentBatteryPercent = 20.0,
     this.elapsedSeconds = 0,
+    this.hasEnergy = true,
+    this.hasCost = true,
+    this.hasMeasuredBatteryPercent = false,
   });
 
   factory ChargingSessionModel.fromJson(Map<String, dynamic> json) {
+    if (![
+      'Charging',
+      'Completed',
+      'Paid',
+      'Cancelled',
+      'Unknown',
+    ].contains(json['status'])) {
+      throw const FormatException('Missing or invalid charging status');
+    }
+    final start = contractDate(json['startTime']);
+    final end = contractDate(json['endTime']);
     return ChargingSessionModel(
-      id: json['id']?.toString() ?? '',
+      id: contractId(json['id']),
       chargingPostId: json['chargingPostId']?.toString() ?? '',
       connectorId: json['connectorId']?.toString(),
-      startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime'].toString()) : null,
-      endTime: json['endTime'] != null ? DateTime.tryParse(json['endTime'].toString()) : null,
-      status: json['status']?.toString() ?? 'Charging',
+      startTime: start,
+      endTime: end,
+      status: json['status'] as String,
       vehicleType: json['vehicleType']?.toString() ?? 'Car',
       phone: json['phone']?.toString(),
       batteryCapacityKWh: json['batteryCapacityKWh'] is int
           ? json['batteryCapacityKWh']
-          : int.tryParse(json['batteryCapacityKWh']?.toString() ?? '80') ?? 80,
+          : int.tryParse(json['batteryCapacityKWh']?.toString() ?? '') ?? 0,
       initialBatteryLevelPercent: json['initialBatteryLevelPercent'] is int
           ? json['initialBatteryLevelPercent']
-          : int.tryParse(json['initialBatteryLevelPercent']?.toString() ?? '20') ?? 20,
+          : int.tryParse(
+                  json['initialBatteryLevelPercent']?.toString() ?? '',
+                ) ??
+                0,
       expectedEnergiesKWh: json['expectedEnergiesKWh'] is int
           ? json['expectedEnergiesKWh']
-          : int.tryParse(json['expectedEnergiesKWh']?.toString() ?? '80') ?? 80,
+          : int.tryParse(json['expectedEnergiesKWh']?.toString() ?? '') ?? 0,
       powerRateKW: json['powerRateKW'] is int
           ? json['powerRateKW']
-          : int.tryParse(json['powerRateKW']?.toString() ?? '60') ?? 60,
-      totalEnergyConsumedKWh: (json['totalEnergyConsumedKWh'] as num?)?.toDouble() ?? 0.0,
-      cost: (json['cost'] as num?)?.toDouble() ?? 0.0,
-      currentBatteryPercent: (json['currentBatteryPercent'] as num?)?.toDouble() ??
-          (json['initialBatteryLevelPercent'] as num?)?.toDouble() ??
-          20.0,
-      elapsedSeconds: json['elapsedSeconds'] is int ? json['elapsedSeconds'] : 0,
+          : int.tryParse(json['powerRateKW']?.toString() ?? '') ?? 0,
+      totalEnergyConsumedKWh: json['totalEnergyConsumedKWh'] == null
+          ? 0
+          : contractNumber(json['totalEnergyConsumedKWh']),
+      cost: json['cost'] == null ? 0 : contractNumber(json['cost']),
+      currentBatteryPercent: json['currentBatteryPercent'] == null
+          ? 0
+          : contractNumber(json['currentBatteryPercent']),
+      elapsedSeconds: start == null
+          ? 0
+          : (end ?? DateTime.now())
+                .difference(start)
+                .inSeconds
+                .clamp(0, 2147483647),
+      hasEnergy: json['totalEnergyConsumedKWh'] != null,
+      hasCost: json['cost'] != null,
+      hasMeasuredBatteryPercent: json['currentBatteryPercent'] != null,
     );
   }
 
@@ -72,7 +104,7 @@ class ChargingSessionModel {
       'batteryCapacityKWh': batteryCapacityKWh,
       'initialBatteryLevelPercent': initialBatteryLevelPercent,
       'expectedEnergiesKWh': expectedEnergiesKWh,
-      'phone': phone ?? '0912345678',
+      if (phone != null && phone!.isNotEmpty) 'phone': phone,
     };
   }
 
@@ -104,13 +136,19 @@ class ChargingSessionModel {
       vehicleType: vehicleType ?? this.vehicleType,
       phone: phone ?? this.phone,
       batteryCapacityKWh: batteryCapacityKWh ?? this.batteryCapacityKWh,
-      initialBatteryLevelPercent: initialBatteryLevelPercent ?? this.initialBatteryLevelPercent,
+      initialBatteryLevelPercent:
+          initialBatteryLevelPercent ?? this.initialBatteryLevelPercent,
       expectedEnergiesKWh: expectedEnergiesKWh ?? this.expectedEnergiesKWh,
       powerRateKW: powerRateKW ?? this.powerRateKW,
-      totalEnergyConsumedKWh: totalEnergyConsumedKWh ?? this.totalEnergyConsumedKWh,
+      totalEnergyConsumedKWh:
+          totalEnergyConsumedKWh ?? this.totalEnergyConsumedKWh,
       cost: cost ?? this.cost,
-      currentBatteryPercent: currentBatteryPercent ?? this.currentBatteryPercent,
+      currentBatteryPercent:
+          currentBatteryPercent ?? this.currentBatteryPercent,
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+      hasEnergy: hasEnergy,
+      hasCost: hasCost,
+      hasMeasuredBatteryPercent: hasMeasuredBatteryPercent,
     );
   }
 }

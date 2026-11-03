@@ -1,4 +1,4 @@
-﻿using Common.Enum.Transaction;
+using Common.Enum.Transaction;
 using System.Text.Json.Serialization;
 
 namespace Common.DTOs.TransactionDto
@@ -22,5 +22,9 @@ namespace Common.DTOs.TransactionDto
         public Guid? PaidBy { get; set; }
         public Guid? RecordedBy { get; set; }
         public Guid? PaymentId { get; set; }
+        public Guid? ChargingSessionId { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? PaymentStatus { get; set; }
+        public string? PaymentReference { get; set; }
     }
 }

@@ -36,6 +36,9 @@ namespace Infrastructure.Models
         [ForeignKey("Connector")]
         public Guid? ConnectorId { get; set; }
         public Connector ConnectorNavigation { get; set; }
+        // Nullable only for legacy bookings; new bookings require a validated catalog selection.
+        public Guid? VehicleModelId { get; set; }
+        public VehicleModel VehicleModelNavigation { get; set; }
 
         //  Trạm sạc chứa connector
         [ForeignKey("ChargingStation")]

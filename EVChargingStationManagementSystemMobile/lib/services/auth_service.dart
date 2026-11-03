@@ -4,20 +4,43 @@ import '../core/network/api_response.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient;
+  AuthService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  ApiClient get apiClient => _apiClient;
+
+  void setSessionToken(String? token) => _apiClient.setAuthToken(token);
+  void addUnauthorizedListener(void Function(String) listener) =>
+      _apiClient.addUnauthorizedListener(listener);
+  void removeUnauthorizedListener(void Function(String) listener) =>
+      _apiClient.removeUnauthorizedListener(listener);
 
   // Login
-  Future<ApiResponse<AuthResponseModel>> login(String email, String password) async {
-    final response = await _apiClient.post<AuthResponseModel>(
+  Future<ApiResponse<AuthResponseModel>> login(
+    String email,
+    String password,
+  ) async {
+    return await _apiClient.post<AuthResponseModel>(
       ApiConstants.login,
       data: {'email': email, 'password': password},
       fromJson: (data) => AuthResponseModel.fromJson(data),
+      authenticated: false,
     );
+  }
 
-    if (response.success && response.data != null) {
-      _apiClient.setAuthToken(response.data!.token);
+  // Exchange a Google ID token for the backend session JWT.
+  Future<ApiResponse<AuthResponseModel>> loginGoogle(String idToken) async {
+    if (idToken.trim().isEmpty) {
+      return ApiResponse.error(
+        'Google không trả ID Token.',
+        errorType: ApiErrorType.parse,
+      );
     }
-    return response;
+    return _apiClient.post<AuthResponseModel>(
+      ApiConstants.loginGoogle,
+      data: {'idToken': idToken},
+      fromJson: AuthResponseModel.fromJson,
+      authenticated: false,
+    );
   }
 
   // Register
@@ -34,6 +57,13 @@ class AuthService {
         'password': password,
         'name': name,
         'phone': phone,
+      },
+      authenticated: false,
+      fromJson: (data) {
+        if (data is! Map<String, dynamic> || data['message'] is! String) {
+          throw const FormatException('Phản hồi đăng ký không hợp lệ.');
+        }
+        return data;
       },
     );
   }
@@ -52,14 +82,18 @@ class AuthService {
   // Resend Confirm Email
   Future<ApiResponse<dynamic>> resendConfirmEmail(String email) async {
     return await _apiClient.post(
-      '${ApiConstants.resendConfirmEmail}?email=$email',
+      ApiConstants.resendConfirmEmail,
+      queryParameters: {'Email': email},
+      authenticated: false,
     );
   }
 
   // Forgot Password
   Future<ApiResponse<dynamic>> forgotPassword(String email) async {
     return await _apiClient.post(
-      '${ApiConstants.forgotPassword}?email=$email',
+      ApiConstants.forgotPassword,
+      queryParameters: {'Email': email},
+      authenticated: false,
     );
   }
 
@@ -71,11 +105,7 @@ class AuthService {
   }) async {
     return await _apiClient.post(
       ApiConstants.resetPassword,
-      data: {
-        'userId': userId,
-        'token': token,
-        'newPassword': newPassword,
-      },
+      data: {'userId': userId, 'token': token, 'newPassword': newPassword},
     );
   }
 
@@ -99,15 +129,27 @@ class AuthService {
   Future<ApiResponse<UserModel>> getProfile() async {
     return await _apiClient.get<UserModel>(
       ApiConstants.driverProfile,
-      fromJson: (data) => UserModel.fromJson(data as Map<String, dynamic>),
+      fromJson: UserModel.fromDriverProfile,
     );
   }
 
   // Update Profile
-  Future<ApiResponse<dynamic>> updateProfile(UserModel user) async {
-    return await _apiClient.put(
+  Future<ApiResponse<UserModel>> updateProfile(
+    UserModel user, {
+    required String name,
+    required String phone,
+    String? address,
+  }) async {
+    return await _apiClient.put<UserModel>(
       ApiConstants.updateDriverProfile,
-      data: user.toJson(),
+      data: {
+        'driverId': user.id,
+        'name': name,
+        'phoneNumber': phone,
+        'address': address ?? user.address,
+        'profilePictureUrl': user.avatar,
+      },
+      fromJson: UserModel.fromDriverProfile,
     );
   }
 

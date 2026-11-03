@@ -6,13 +6,14 @@ using Common.Enum.ChargingPost;
 using Common.Enum.Connector;
 using Common.Enum.VehicleModel;
 using Infrastructure.IUnitOfWork;
+using Infrastructure.Data;
 using Infrastructure.Models;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 
 namespace BusinessLogic.Services
 {
-    public class ConnectorService(IUnitOfWork unitOfWork) : IConnectorService
+    public class ConnectorService(IUnitOfWork unitOfWork, EVCSMSContext db) : IConnectorService
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
@@ -229,7 +230,10 @@ namespace BusinessLogic.Services
             }
         }
 
-        public async Task<IServiceResult> UpdateConnectorCount(bool toggle, Guid connectorId)
+        public Task<IServiceResult> UpdateConnectorCount(bool toggle, Guid connectorId) =>
+            DatabaseWork.Write(db, () => UpdateConnectorCountCore(toggle, connectorId));
+
+        private async Task<IServiceResult> UpdateConnectorCountCore(bool toggle, Guid connectorId)
         {
             try
             {
@@ -295,6 +299,9 @@ namespace BusinessLogic.Services
 
                 // ================== ✔ Cập nhật trạng thái ==================
 
+                if (connector.IsLocked)
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang khóa; không được thay đổi khi còn phiên hoặc hóa đơn.");
+                connector.IsPluggedIn = isPlugIn;
                 if (isUnplug) // TRUE = RÚT
                 {
                     connector.Status = ConnectorStatus.Available.ToString();

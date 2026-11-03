@@ -6,6 +6,15 @@ namespace Common.DTOs.ChargingStationDto
     public class ChargingStationViewGeneralDto
     {
         public Guid Id { get; set; }
+        public decimal? PricePerKWh { get; set; }
+        public int TotalBikeConnectors { get; set; }
+        public int AvailableBikeConnectors { get; set; }
+        public int TotalCarChargingConnectors { get; set; }
+        public int AvailableCarConnectors { get; set; }
+        public int TotalBikeChargingPosts { get; set; }
+        public int AvailableBikeChargingPosts { get; set; }
+        public int TotalCarChargingPosts { get; set; }
+        public int AvailableCarChargingPosts { get; set; }
         public string StationName { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Province { get; set; } = string.Empty;

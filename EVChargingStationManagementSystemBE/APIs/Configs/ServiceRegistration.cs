@@ -1,4 +1,4 @@
-﻿using Common.DTOs.AuthDto;
+using Common.DTOs.AuthDto;
 using Common.DTOs.BookingDto;
 using Common.DTOs.ChargingPostDto;
 using Common.DTOs.ChargingSessionDto;
@@ -12,6 +12,7 @@ using Common.DTOs.ReportDto;
 using Common.DTOs.SystemConfigurationDto;
 using Common.DTOs.VehicleModelDto;
 using Infrastructure.Models;
+using Common.DTOs.TransactionDto;
 using Mapster;
 using MapsterMapper;
 
@@ -33,6 +34,17 @@ namespace APIs.Configs
             services.AddScoped<IMapper, Mapper>();
 
             // Map dto vào model
+            TypeAdapterConfig<Transaction, TransactionViewListDto>.NewConfig()
+                .Map(d => d.ChargingSessionId, s => s.Payment == null ? (Guid?)null : s.Payment.ChargingSessionId)
+                .Map(d => d.PaymentMethod, s => s.Payment == null ? null : s.Payment.PaymentMethod)
+                .Map(d => d.PaymentStatus, s => s.Payment == null ? null : s.Payment.Status)
+                .Map(d => d.PaymentReference, s => s.Payment == null ? null : s.Payment.TxnRef);
+            TypeAdapterConfig<Transaction, TransactionViewDetailDto>.NewConfig()
+                .Map(d => d.ChargingSessionId, s => s.Payment == null ? (Guid?)null : s.Payment.ChargingSessionId)
+                .Map(d => d.PaymentMethod, s => s.Payment == null ? null : s.Payment.PaymentMethod)
+                .Map(d => d.PaymentStatus, s => s.Payment == null ? null : s.Payment.Status)
+                .Map(d => d.PaymentReference, s => s.Payment == null ? null : s.Payment.TxnRef);
+
             TypeAdapterConfig<RegisterAccountDto, UserAccount>.NewConfig()
                 .Map(dest => dest.UserName, src => src.Email)
                 .Map(dest => dest.PhoneNumber, src => src.Phone)
@@ -75,6 +87,7 @@ namespace APIs.Configs
                             ? src.UserVehicles.Select(v => v.VehicleModelId).ToList()
                             : new List<Guid>())
                 .Map(dest => dest.AccountId, src => src.AccountId)
+                .Map(dest => dest.Score, src => src.Point)
                 .Map(dest => dest.Id, src => src.Id)
                 .IgnoreNullValues(true);
 
@@ -251,6 +264,8 @@ namespace APIs.Configs
                 .IgnoreNullValues(true);
 
             TypeAdapterConfig<NotificationRecipient, NotificationDto>.NewConfig()
+                .Map(dest => dest.Id, src => src.NotificationId)
+                .Map(dest => dest.IsRead, src => src.IsRead == true)
                 .Map(dest => dest.Title, src => src.Notification.Title)
                 .Map(dest => dest.Message, src => src.Notification.Message)
                 .Map(dest => dest.Type, src => src.Notification.Type)

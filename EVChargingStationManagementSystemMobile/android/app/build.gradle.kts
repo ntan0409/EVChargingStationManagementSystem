@@ -4,6 +4,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val signingEnvironment = mapOf(
+    "storeFile" to System.getenv("EV_RELEASE_STORE_FILE"),
+    "storePassword" to System.getenv("EV_RELEASE_STORE_PASSWORD"),
+    "keyAlias" to System.getenv("EV_RELEASE_KEY_ALIAS"),
+    "keyPassword" to System.getenv("EV_RELEASE_KEY_PASSWORD")
+)
+val hasReleaseSigning = signingEnvironment.values.all { !it.isNullOrBlank() }
+val requestsRelease = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
+if (requestsRelease && !hasReleaseSigning) {
+    throw GradleException("Release signing is not configured. Supply EV_RELEASE_* secrets; debug signing is forbidden for release.")
+}
+
 android {
     namespace = "com.fptu.prm.ev_charging_station"
     compileSdk = flutter.compileSdkVersion
@@ -25,11 +37,19 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(signingEnvironment.getValue("storeFile")!!)
+                storePassword = signingEnvironment.getValue("storePassword")
+                keyAlias = signingEnvironment.getValue("keyAlias")
+                keyPassword = signingEnvironment.getValue("keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else null
         }
     }
 }

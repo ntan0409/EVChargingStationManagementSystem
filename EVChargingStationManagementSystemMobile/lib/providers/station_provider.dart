@@ -3,97 +3,114 @@ import '../models/station_model.dart';
 import '../services/station_service.dart';
 
 class StationProvider extends ChangeNotifier {
-  final StationService _stationService = StationService();
-
+  final StationService _stationService;
+  StationProvider({StationService? stationService})
+    : _stationService = stationService ?? StationService();
   List<StationModel> _stations = [];
   StationModel? _selectedStation;
   bool _isLoading = false;
+  bool _disposed = false;
+  int _epoch = 0;
   String? _errorMessage;
   String _searchQuery = '';
-  String _selectedFilter = 'All'; // All, CCS2, FastDC, Available
-
-  List<StationModel> get stations {
-    if (_searchQuery.isEmpty && _selectedFilter == 'All') {
-      return _stations;
-    }
-
-    return _stations.where((s) {
-      final matchesSearch = _searchQuery.isEmpty ||
-          s.stationName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          s.location.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          s.province.toLowerCase().contains(_searchQuery.toLowerCase());
-
-      bool matchesFilter = true;
-      if (_selectedFilter == 'Available') {
-        matchesFilter = s.totalAvailableConnectors > 0;
-      } else if (_selectedFilter == 'FastDC') {
-        matchesFilter = s.chargingPosts.any((p) => p.maxPowerKw >= 60);
-      } else if (_selectedFilter == 'CCS2') {
-        matchesFilter = s.chargingPosts.any((p) => p.connectorType.contains('CCS2'));
-      }
-
-      return matchesSearch && matchesFilter;
-    }).toList();
-  }
-
+  String _selectedFilter = 'All';
+  List<StationModel> get allStations => List.unmodifiable(_stations);
+  List<StationModel> get stations => _stations.where((s) {
+    final search =
+        _searchQuery.isEmpty ||
+        '${s.stationName} ${s.location} ${s.province}'.toLowerCase().contains(
+          _searchQuery.toLowerCase(),
+        );
+    final filter = switch (_selectedFilter) {
+      'Available' => s.totalAvailableConnectors > 0,
+      'FastDC' => s.chargingPosts.any((p) => p.maxPowerKw >= 60),
+      'CCS2' => s.chargingPosts.any((p) => p.connectorType.contains('CCS2')),
+      _ => true,
+    };
+    return search && filter;
+  }).toList();
   StationModel? get selectedStation => _selectedStation;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get searchQuery => _searchQuery;
   String get selectedFilter => _selectedFilter;
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
-    notifyListeners();
+    _notify();
   }
 
   void setFilter(String filter) {
     _selectedFilter = filter;
-    notifyListeners();
+    _notify();
   }
 
   void selectStation(StationModel? station) {
     _selectedStation = station;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> fetchStations() async {
+    if (_disposed) return;
+    final epoch = ++_epoch;
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
-
+    _stations = [];
+    _notify();
     try {
       final response = await _stationService.getStations();
+      if (_disposed || epoch != _epoch) return;
       if (response.success && response.data != null) {
         _stations = response.data!;
-        if (_selectedStation == null && _stations.isNotEmpty) {
-          _selectedStation = _stations.first;
-        }
       } else {
         _errorMessage = response.message;
       }
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (_) {
+      if (!_disposed && epoch == _epoch) {
+        _errorMessage = 'Không tải được danh sách trạm sạc.';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && epoch == _epoch) {
+        _isLoading = false;
+        _notify();
+      }
     }
   }
 
-  Future<void> fetchStationById(String stationId) async {
+  Future<void> fetchStationById(String id) async {
+    if (_disposed) return;
+    final epoch = ++_epoch;
     _isLoading = true;
-    notifyListeners();
-
+    _errorMessage = null;
+    _selectedStation = null;
+    _notify();
     try {
-      final response = await _stationService.getStationById(stationId);
+      final response = await _stationService.getStationById(id);
+      if (_disposed || epoch != _epoch) return;
       if (response.success && response.data != null) {
         _selectedStation = response.data;
+      } else {
+        _errorMessage = response.message;
       }
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (_) {
+      if (!_disposed && epoch == _epoch) {
+        _errorMessage = 'Không tải được chi tiết trạm sạc.';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && epoch == _epoch) {
+        _isLoading = false;
+        _notify();
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _epoch++;
+    super.dispose();
   }
 }

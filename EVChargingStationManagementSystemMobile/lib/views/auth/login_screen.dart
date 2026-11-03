@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/google_identity.dart';
+import 'google_sign_in_button.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../main_navigation_screen.dart';
@@ -19,8 +21,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'driver@evcharging.com');
-  final _passwordController = TextEditingController(text: '123456');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _rememberMe = true;
 
   @override
@@ -36,15 +38,42 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(
       _emailController.text.trim(),
-      _passwordController.text.trim(),
+      _passwordController.text,
+      rememberMe: _rememberMe,
     );
+    _finishSignIn(success);
+  }
 
+  void _handleGoogleLogin() async {
+    final success = await context.read<AuthProvider>().loginWithGoogle(
+      rememberMe: _rememberMe,
+    );
+    _finishSignIn(success, google: true);
+  }
+
+  void _handleGoogleCredential(GoogleCredential credential) async {
+    final auth = context.read<AuthProvider>();
+    if (auth.isLoading || auth.isAuthenticated) return;
+    final success = await auth.loginWithGoogle(
+      credential: credential,
+      rememberMe: _rememberMe,
+    );
+    _finishSignIn(success, google: true);
+  }
+
+  void _finishSignIn(bool success, {bool google = false}) {
     if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    if (!success && google && (authProvider.errorMessage?.isNotEmpty != true)) {
+      return;
+    }
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Chào mừng trở lại, ${authProvider.currentUser?.name}!'),
+          content: Text(
+            'Chào mừng trở lại, ${authProvider.currentUser?.name}!',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -54,7 +83,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại. Vui lòng kiểm tra lại.'),
+          content: Text(
+            authProvider.errorMessage ??
+                'Đăng nhập thất bại. Vui lòng kiểm tra lại.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -83,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -133,7 +168,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: 'Nhập địa chỉ email của bạn',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+                    prefixIcon: const Icon(
+                      Icons.email_outlined,
+                      color: AppColors.primary,
+                    ),
                     validator: Validators.email,
                   ),
                   const SizedBox(height: 18),
@@ -144,49 +182,61 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: 'Nhập mật khẩu',
                     controller: _passwordController,
                     isPassword: true,
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.primary,
+                    ),
                     validator: Validators.password,
                   ),
                   const SizedBox(height: 12),
 
                   // Remember me & Forgot Password
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            activeColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                            onChanged: (val) {
-                              setState(() {
-                                _rememberMe = val ?? true;
-                              });
-                            },
-                          ),
-                          const Text(
-                            'Ghi nhớ đăng nhập',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ],
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                          );
-                        },
-                        child: const Text(
-                          'Quên mật khẩu?',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.primaryDark,
-                            fontWeight: FontWeight.w600,
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Checkbox(
+                              value: _rememberMe,
+                              activeColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              onChanged: (val) {
+                                setState(() {
+                                  _rememberMe = val ?? true;
+                                });
+                              },
+                            ),
+                            const Text(
+                              'Ghi nhớ đăng nhập',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Quên mật khẩu?',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -196,43 +246,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     isLoading: authProvider.isLoading,
                     onPressed: _handleLogin,
                   ),
-                  const SizedBox(height: 16),
-
-                  // Quick Demo Driver button
-                  CustomButton(
-                    text: 'Đăng nhập nhanh (Tài khoản Demo)',
-                    isOutlined: true,
-                    onPressed: () {
-                      _emailController.text = 'driver@evcharging.com';
-                      _passwordController.text = '123456';
-                      _handleLogin();
-                    },
-                  ),
                   const SizedBox(height: 32),
 
+                  // Google identity exchange (separate from password validation).
+                  GoogleSignInButton(
+                    identity: authProvider.googleIdentity,
+                    onCredential: _handleGoogleCredential,
+                    onPressed: _handleGoogleLogin,
+                    isLoading: authProvider.isLoading,
+                  ),
+                  const SizedBox(height: 24),
+
                   // Register Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Chưa có tài khoản? ',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                          );
-                        },
-                        child: const Text(
-                          'Đăng ký ngay',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      children: [
+                        Text(
+                          'Chưa có tài khoản? ',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Đăng ký ngay',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

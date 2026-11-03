@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BusinessLogic.Services
 {
     public class EVDriverService(
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork, DriverJourneyService journey, Infrastructure.Data.EVCSMSContext db
     ) : IEVDriverService
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
@@ -88,7 +88,8 @@ namespace BusinessLogic.Services
             }
         }
 
-        public async Task<IServiceResult> UpdateProfile(EVDriverUpdateSelfDto dto)
+        public Task<IServiceResult> UpdateProfile(EVDriverUpdateSelfDto dto) => DatabaseWork.Write(db, () => UpdateProfileCore(dto));
+        private async Task<IServiceResult> UpdateProfileCore(EVDriverUpdateSelfDto dto)
         {
             try
             {
@@ -102,6 +103,17 @@ namespace BusinessLogic.Services
                     return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy EVDriver");
 
                 // Cập nhật thông tin cơ bản
+                if (dto.VehicleModelIds != null)
+                {
+                    var newIds = dto.VehicleModelIds.Except(driver.UserVehicles.Select(v => v.VehicleModelId)).ToList();
+                    var state = await journey.GetState(driver.AccountId);
+                    if (newIds.Count > 0 && state?.CanChangeVehicle != true)
+                        return new ServiceResult(Const.FAIL_UPDATE_CODE, "Không đổi xe khi còn lịch đặt, phiên sạc hoặc hóa đơn chưa hoàn tất.");
+                    var models = await _unitOfWork.VehicleModelRepository.GetQueryable().AsNoTracking()
+                        .Where(v => newIds.Contains(v.Id)).ToListAsync();
+                    if (models.Count != newIds.Count || models.Any(v => !DriverJourneyService.Supported(v)))
+                        return new ServiceResult(Const.FAIL_UPDATE_CODE, "Chỉ chọn xe Active có dung lượng pin và loại xe hợp lệ từ catalog Admin.");
+                }
                 dto.Adapt(driver);
                 driver.UpdatedAt = DateTime.Now;
 
@@ -151,6 +163,7 @@ namespace BusinessLogic.Services
                     .FirstOrDefaultAsync();
                 if (updatedDriver == null)
                     return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy profile");
+                await AttachEligibility(updatedDriver);
                 return new ServiceResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, updatedDriver);
             }
             catch (Exception ex)
@@ -241,11 +254,8 @@ namespace BusinessLogic.Services
                         "Không tìm thấy hồ sơ tài xế tương ứng với tài khoản hiện tại."
                     );
 
-                return new ServiceResult(
-                    Const.SUCCESS_READ_CODE,
-                    Const.SUCCESS_READ_MSG,
-                    driver
-                );
+                await AttachEligibility(driver);
+                return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, driver);
             }
             catch (Exception ex)
             {
@@ -254,7 +264,16 @@ namespace BusinessLogic.Services
         }
 
         // EVDriver xóa xe khỏi hồ sơ cá nhân (hard delete chỉ bản ghi UserVehicle)
-        public async Task<IServiceResult> DeleteMyVehicle(Guid accountId, Guid vehicleModelId)
+        private async Task AttachEligibility(Common.DTOs.ProfileEVDriverDto.EVDriverViewDto profile)
+        {
+            var state = await journey.GetState(profile.AccountId);
+            profile.ProfileCompleted = state?.ProfileCompleted == true;
+            profile.MissingRequirements = state?.MissingRequirements ?? ["profile"];
+            profile.EligibleVehicleModelIds = state?.EligibleVehicleModelIds ?? [];
+        }
+
+        public Task<IServiceResult> DeleteMyVehicle(Guid accountId, Guid vehicleModelId) => DatabaseWork.Write(db, () => DeleteMyVehicleCore(accountId, vehicleModelId));
+        private async Task<IServiceResult> DeleteMyVehicleCore(Guid accountId, Guid vehicleModelId)
         {
             try
             {
@@ -271,6 +290,9 @@ namespace BusinessLogic.Services
                 var userVehicle = driver.UserVehicles.FirstOrDefault(uv => uv.VehicleModelId == vehicleModelId);
                 if (userVehicle == null)
                     return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy xe trong hồ sơ của bạn.");
+
+                if ((await journey.GetState(accountId))?.CanChangeVehicle != true)
+                    return new ServiceResult(Const.FAIL_DELETE_CODE, "Không xóa xe khi còn lịch đặt, phiên sạc hoặc hóa đơn chưa hoàn tất.");
 
                 // Xóa cứng bản ghi UserVehicle (KHÔNG đụng vào VehicleModel)
                 await _unitOfWork.UserVehicleRepository.RemoveAsync(userVehicle);

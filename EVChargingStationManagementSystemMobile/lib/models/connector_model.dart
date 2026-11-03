@@ -1,3 +1,5 @@
+import '../core/network/api_contract.dart';
+
 class ConnectorModel {
   final String id;
   final String connectorName;
@@ -6,6 +8,9 @@ class ConnectorModel {
   final String status; // Available, InUse, Charging, Reserved, Faulted
   final String? chargingPostId;
   final bool isAvailable;
+  final bool isPluggedIn;
+  final bool isLocked;
+  bool get canStart => status == 'InUse' && isPluggedIn && !isLocked;
 
   ConnectorModel({
     required this.id,
@@ -15,20 +20,32 @@ class ConnectorModel {
     required this.status,
     this.chargingPostId,
     this.isAvailable = true,
+    this.isPluggedIn = false,
+    this.isLocked = false,
   });
 
   factory ConnectorModel.fromJson(Map<String, dynamic> json) {
-    final rawStatus = json['status']?.toString() ?? 'Available';
-    final available = rawStatus.toLowerCase() == 'available' || json['isAvailable'] == true;
+    final rawStatus = json['status']?.toString() ?? 'Unknown';
+    final available = rawStatus == 'Available' && json['isLocked'] != true;
 
     return ConnectorModel(
-      id: json['id']?.toString() ?? '',
-      connectorName: json['connectorName']?.toString() ?? json['name']?.toString() ?? 'Cổng sạc',
-      type: json['type']?.toString() ?? json['connectorType']?.toString() ?? 'Type 2',
-      maxPower: json['maxPower']?.toString() ?? '${json['maxPowerKw'] ?? 22} kW',
+      id: contractId(json['id']),
+      connectorName:
+          json['connectorName']?.toString() ??
+          json['name']?.toString() ??
+          'Cổng sạc',
+      type:
+          json['type']?.toString() ??
+          json['connectorType']?.toString() ??
+          'Unknown',
+      maxPower:
+          json['maxPower']?.toString() ??
+          (json['maxPowerKw'] == null ? '—' : '${json['maxPowerKw']} kW'),
       status: rawStatus,
       chargingPostId: json['chargingPostId']?.toString(),
       isAvailable: available,
+      isPluggedIn: json['isPluggedIn'] == true,
+      isLocked: json['isLocked'] == true,
     );
   }
 
@@ -41,6 +58,8 @@ class ConnectorModel {
       'status': status,
       'chargingPostId': chargingPostId,
       'isAvailable': isAvailable,
+      'isPluggedIn': isPluggedIn,
+      'isLocked': isLocked,
     };
   }
 }

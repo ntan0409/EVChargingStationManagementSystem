@@ -1,5 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using System.Net;
+using System.Globalization;
 
 namespace Common.Helper
 {
@@ -45,13 +47,13 @@ namespace Common.Helper
             var sortedParams = new SortedDictionary<string, string>(parameters);
 
             // Tạo encoded string cho hash
-            var encodedForHash = string.Join('&', sortedParams.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var encodedForHash = CreateDataString(sortedParams);
 
             // Tạo hash
             var secureHash = CreateHmac512(secret, encodedForHash);
 
             // Tạo query string
-            var query = string.Join('&', sortedParams.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var query = encodedForHash;
 
             // Tạo URL hoàn chỉnh
             return $"{baseUrl}?{query}&vnp_SecureHashType=HmacSHA512&vnp_SecureHash={secureHash}";
@@ -71,10 +73,10 @@ namespace Common.Helper
                 ["vnp_Version"] = "2.1.0",
                 ["vnp_Command"] = "pay",
                 ["vnp_TmnCode"] = tmnCode,
-                ["vnp_Amount"] = amount.ToString(),
-                ["vnp_CreateDate"] = DateTime.UtcNow.ToString("yyyyMMddHHmmss"),
+                ["vnp_Amount"] = amount.ToString(CultureInfo.InvariantCulture),
+                ["vnp_CreateDate"] = DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"),
                 ["vnp_CurrCode"] = "VND",
-                ["vnp_ExpireDate"] = DateTime.Now.AddDays(1).ToString("yyyyMMddHHmmss"),
+                ["vnp_ExpireDate"] = DateTime.UtcNow.AddHours(7).AddMinutes(15).ToString("yyyyMMddHHmmss"),
                 ["vnp_IpAddr"] = ipAddress,
                 ["vnp_Locale"] = locale,
                 ["vnp_OrderInfo"] = orderInfo,
@@ -94,10 +96,23 @@ namespace Common.Helper
 
             // Lọc bỏ các khóa không có giá trị (null/empty)
             var parts = sorted
-                .Where(kv => !string.IsNullOrEmpty(kv.Value))
-                .Select(kv => $"{kv.Key}={kv.Value}");
+                .Where(kv => kv.Key.StartsWith("vnp_", StringComparison.Ordinal) &&
+                    kv.Key != "vnp_SecureHash" && kv.Key != "vnp_SecureHashType" && !string.IsNullOrEmpty(kv.Value))
+                .Select(kv => $"{WebUtility.UrlEncode(kv.Key)}={WebUtility.UrlEncode(kv.Value)}");
 
             return string.Join("&", parts);
+        }
+
+        public static bool VerifySignature(IDictionary<string, string> parameters, string secret)
+        {
+            if (string.IsNullOrWhiteSpace(secret) || !parameters.TryGetValue("vnp_SecureHash", out var received) || received.Length != 128)
+                return false;
+            try
+            {
+                var expected = Convert.FromHexString(CreateHmac512(secret, CreateDataString(parameters)));
+                return CryptographicOperations.FixedTimeEquals(expected, Convert.FromHexString(received));
+            }
+            catch (FormatException) { return false; }
         }
     }
 }

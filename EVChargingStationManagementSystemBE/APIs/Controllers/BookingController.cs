@@ -62,7 +62,7 @@ namespace APIs.Controllers
         [Authorize(Roles = "EVDriver,Admin")]
         public async Task<IActionResult> GetBookingDetail(Guid bookingId)
         {
-            var result = await _service.GetBookingDetail(bookingId);
+            var result = await _service.GetBookingDetail(bookingId, User.IsInRole("Admin") ? null : User.GetUserId());
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -75,12 +75,15 @@ namespace APIs.Controllers
 
         // 4️ Check-in booking (EVDriver nhập mã check-in)
         [HttpPatch("checkin")]
-
+        [Authorize(Roles = "EVDriver")]
         public async Task<IActionResult> CheckInBooking([FromBody] BookingCheckInDto dto)
         {
            
 
-            var result = await _service.CheckInBooking(dto);
+            var result = await _service.CheckInBooking(dto, User.GetUserId());
+
+            if (result.Status == Const.WARNING_NO_DATA_CODE)
+                return NotFound(new { message = result.Message });
 
             if (result.Status == Const.SUCCESS_UPDATE_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -96,7 +99,7 @@ namespace APIs.Controllers
         [Authorize(Roles = "EVDriver")]
         public async Task<IActionResult> CompleteBooking(Guid bookingId)
         {
-            var result = await _service.CompleteBookingAsync(bookingId);
+            var result = await _service.CompleteBookingAsync(bookingId, User.GetUserId());
 
             if (result.Status == Const.SUCCESS_UPDATE_CODE)
                 return Ok(new { message = result.Message });

@@ -6,6 +6,7 @@ namespace Common.DTOs.ChargingSessionDto
     public class ChargingSessionStopDto
     {
         [Required(ErrorMessage = "Cần nhập năng lượng đã tiêu thụ")]
-        public double EnergyDeliveredKWh { get; set; }
+        [Range(0, double.MaxValue)]
+        public double? EnergyDeliveredKWh { get; set; }
     }
 }

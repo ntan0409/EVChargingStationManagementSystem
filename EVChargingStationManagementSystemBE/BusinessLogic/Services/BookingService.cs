@@ -1,4 +1,4 @@
-﻿using BusinessLogic.Base;
+using BusinessLogic.Base;
 using BusinessLogic.IServices;
 using Common;
 using Common.DTOs.BookingDto;
@@ -15,7 +15,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BusinessLogic.Services
 {
-    public class BookingService(IUnitOfWork unitOfWork, UserManager<UserAccount> userManager, ICheckInCodeService checkInCodeService) : IBookingService
+    public class BookingService(IUnitOfWork unitOfWork, UserManager<UserAccount> userManager, ICheckInCodeService checkInCodeService, Infrastructure.Data.EVCSMSContext db, DriverJourneyService journey) : IBookingService
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly UserManager<UserAccount> _userManager = userManager;
@@ -24,147 +24,55 @@ namespace BusinessLogic.Services
 
         // Tạo booking mới (EndTime mặc định +1h)
 
-        public async Task<IServiceResult> CreateBooking(BookingCreatedDto dto, Guid userId)
+        public Task<IServiceResult> CreateBooking(BookingCreatedDto dto, Guid userId) => DatabaseWork.Write(db, async () =>
         {
-            try
-            {
-                // --- BR12: Kiểm tra tài khoản EVDriver ---
-                var user = await _unitOfWork.UserAccountRepository.GetByIdAsync(
-                    u => u.Id == userId && !u.IsDeleted);
-                if (user == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy tài khoản người dùng.");
-                if (!user.EmailConfirmed)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Tài khoản chưa được xác thực.");
-                var roles = await _userManager.GetRolesAsync(user);
-                if (!roles.Contains("EVDriver", StringComparer.OrdinalIgnoreCase))
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Chỉ EVDriver mới được phép đặt chỗ.");
+            var eligibility = await journey.GetState(userId);
+            if (eligibility?.ProfileCompleted != true)
+                return new ServiceResult(Const.FAIL_CREATE_CODE, "Hoàn tất họ tên, số điện thoại, email đã xác minh và xe hợp lệ trước khi đặt lịch.");
+            if (!eligibility.CanBook)
+                return new ServiceResult(Const.FAIL_CREATE_CODE, "Bạn còn lịch đặt, phiên sạc hoặc hóa đơn chưa hoàn tất; không tạo lịch trùng.");
+            if (!eligibility.EligibleVehicleModelIds.Contains(dto.VehicleId))
+                return new ServiceResult(Const.FAIL_CREATE_CODE, "Xe chưa thuộc hồ sơ, bị vô hiệu hóa hoặc thiếu thông số hợp lệ.");
+            var vehicle = await db.VehicleModels.AsNoTracking().FirstAsync(v => v.Id == dto.VehicleId);
+            var now = DateTime.Now;
+            if (dto.StartTime < now.AddMinutes(5))
+                return new ServiceResult(Const.FAIL_CREATE_CODE, "Thời gian bắt đầu phải cách hiện tại ít nhất 5 phút.");
+            var end = dto.StartTime.AddHours(1);
+            var station = await db.ChargingStations.AsNoTracking().FirstOrDefaultAsync(s => s.Id == dto.StationId && !s.IsDeleted);
+            if (station == null || station.Status != "Active")
+                return new ServiceResult(Const.FAIL_CREATE_CODE, "Trạm không hoạt động hoặc không tồn tại.");
+            var candidates = await db.Set<Connector>().Include(c => c.ChargingPost)
+                .Where(c => !c.IsDeleted && !c.IsLocked && !c.IsPluggedIn && c.Status == "Available" &&
+                    !c.ChargingPost.IsDeleted && c.ChargingPost.StationId == dto.StationId &&
+                    c.ChargingPost.Status == "Available" && c.ChargingPost.MaxPowerKw > 0 &&
+                    c.ChargingPost.VehicleTypeSupported == vehicle.VehicleType)
+                .OrderBy(c => c.Id).ToListAsync();
+            var overlapping = await db.Bookings.AsNoTracking().Where(b => !b.IsDeleted && b.ConnectorId != null &&
+                DriverJourneyService.ActiveBookingStatuses.Contains(b.Status) && dto.StartTime < b.EndTime && end > b.StartTime)
+                .Select(b => b.ConnectorId!.Value).ToListAsync();
+            var connector = candidates.FirstOrDefault(c => !overlapping.Contains(c.Id));
+            if (connector == null)
+                return new ServiceResult(Const.FAIL_CREATE_CODE, "Không có cổng tương thích còn trống trong thời gian đặt.");
+            var booking = new Booking {
+                Id = Guid.NewGuid(), BookedBy = userId, StationId = dto.StationId,
+                VehicleModelId = dto.VehicleId, ConnectorId = connector.Id,
+                StartTime = dto.StartTime, EndTime = end, Status = "Scheduled", CreatedAt = now, UpdatedAt = now,
+                CheckInCode = await _checkInCodeService.GenerateUniqueCodeAsync()
+            };
+            db.Bookings.Add(booking);
+            await db.SaveChangesAsync();
+            return new ServiceResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, booking.Adapt<BookingViewDto>());
+        });
+        public Task<IServiceResult> CheckInBooking(BookingCheckInDto request, Guid accountId) =>
+            DatabaseWork.Write(db, () => CheckInCore(request, accountId));
 
-                // --- BR04: Lấy EVDriver profile + xe ---
-                var evDriver = await _unitOfWork.EVDriverRepository.GetByIdAsync(
-                    e => e.AccountId == userId && !e.IsDeleted,
-                    include: e => e.Include(x => x.UserVehicles).ThenInclude(v => v.VehicleModel));
-                if (evDriver == null)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Người dùng chưa có hồ sơ EVDriver.");
-                if (!evDriver.Status.Equals("Active"))
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Tài khoản của bạn đã bị khóa.");
-
-                var vehicle = evDriver.UserVehicles
-                    .Select(uv => uv.VehicleModel)
-                    .FirstOrDefault(v => v.Id == dto.VehicleId && !v.IsDeleted);
-                if (vehicle == null)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Phương tiện không hợp lệ hoặc không thuộc người dùng.");
-
-                var validVehicle = await _unitOfWork.VehicleModelRepository.GetByIdAsync(
-                    v => v.Id == vehicle.Id && !v.IsDeleted);
-                if (validVehicle == null)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Xe không tồn tại trong hệ thống.");
-
-                // --- BR06: StartTime >= Now + 5 phút ---
-                if (dto.StartTime < DateTime.Now.AddMinutes(5))
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Thời gian bắt đầu phải cách hiện tại ≥ 5 phút.");
-
-                // --- BR05: Kiểm tra booking đang hoạt động ---
-                var active = await _unitOfWork.BookingRepository.GetAllAsync(
-                    b => b.BookedBy == userId &&
-                         (b.Status == BookingStatus.Scheduled.ToString() ||
-                          b.Status == BookingStatus.InProgress.ToString()) &&
-                         !b.IsDeleted);
-                if (active.Any())
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Bạn đã có booking đang hoạt động.");
-
-                // --- Kiểm tra trạm sạc ---
-                var station = await _unitOfWork.ChargingStationRepository.GetByIdAsync(
-                    s => s.Id == dto.StationId && !s.IsDeleted,
-                    include: s => s.Include(x => x.ChargingPosts)
-                                   .ThenInclude(cp => cp.Connectors));
-                if (station == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy trạm sạc.");
-                if (station.Status.Equals("Maintenance", StringComparison.OrdinalIgnoreCase) ||
-                    station.Status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Trạm sạc không khả dụng.");
-                }
-
-                // --- BR10: Trạm phải có ít nhất 1 connector usable & không bị chiếm trong thời gian đặt ---
-                var bookingStartTime = dto.StartTime;
-                var bookingEndTime = dto.StartTime.AddMinutes(60); // mặc định 60 phút
-
-                var usableConnectors = station.ChargingPosts
-                    .Where(cp => !cp.IsDeleted && cp.Status.Equals("Available", StringComparison.OrdinalIgnoreCase))
-                    .SelectMany(cp => cp.Connectors)
-                    .Where(c =>
-                        !c.IsDeleted &&
-                        (c.Status.Equals(ConnectorStatus.Available.ToString(), StringComparison.OrdinalIgnoreCase) ||
-                         c.Status.Equals(ConnectorStatus.Preparing.ToString(), StringComparison.OrdinalIgnoreCase))
-                    )
-                    .ToList();
-
-                if (!usableConnectors.Any())
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Trạm sạc hiện không có cổng sạc hoạt động.");
-
-                var usableConnectorIds = usableConnectors.Select(c => c.Id).ToList();
-                // Đếm số booking đã chiếm connector trong khoảng thời gian này
-                var overlappingBookings = await _unitOfWork.BookingRepository.GetAllAsync(
-                    b => !b.IsDeleted &&
-                         b.ConnectorId.HasValue &&
-                         usableConnectorIds.Contains(b.ConnectorId.Value) &&
-                         (bookingStartTime < b.EndTime && bookingEndTime > b.StartTime)
-                );
-
-                int connectorCount = usableConnectors.Count;
-                int bookingCount = overlappingBookings.Count;
-
-                // Nếu số booking >= số connector usable thì từ chối booking mới
-                if (bookingCount >= connectorCount)
-                {
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Tất cả cổng sạc tại trạm đã được đặt, không thể tạo thêm booking.");
-                }
-
-                bool isFullyBooked = await _unitOfWork.BookingRepository.GetQueryable()
-                    .AnyAsync(b =>
-                        !b.IsDeleted &&
-                        b.ConnectorId.HasValue &&
-                        usableConnectorIds.Contains(b.ConnectorId.Value) &&
-                        (bookingStartTime < b.EndTime && bookingEndTime > b.StartTime)
-                    );
-
-                if (isFullyBooked)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Tất cả cổng sạc tại trạm đều đã được đặt trong thời gian này.");
-
-                // --- Tạo booking ---
-                var booking = dto.Adapt<Booking>();
-                booking.Id = Guid.NewGuid();
-                booking.BookedBy = userId;
-                booking.Status = BookingStatus.Scheduled.ToString();
-                booking.EndTime = bookingEndTime;
-                booking.CreatedAt = DateTime.Now;
-                booking.UpdatedAt = DateTime.Now;
-                booking.CheckInCode = await _checkInCodeService.GenerateUniqueCodeAsync();
-
-                await _unitOfWork.BookingRepository.CreateAsync(booking);
-                var result = await _unitOfWork.SaveChangesAsync();
-
-                if (result > 0)
-                {
-                    var response = booking.Adapt<BookingViewDto>();
-                    return new ServiceResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, response);
-                }
-
-                return new ServiceResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        public async Task<IServiceResult> CheckInBooking(BookingCheckInDto request)
+        private async Task<IServiceResult> CheckInCore(BookingCheckInDto request, Guid accountId)
         {
             try
             {
                 //  1. Tìm booking theo mã CheckInCode + userId
                 var bookings = await _unitOfWork.BookingRepository.GetAllAsync(
-                 b => b.CheckInCode == request.CheckInCode &&
+                 b => b.CheckInCode == request.CheckInCode && b.BookedBy == accountId &&
                  !b.IsDeleted,
                 include: b => b.Include(x => x.ConnectorNavigation)
                 .Include(x => x.BookedByNavigation),
@@ -177,6 +85,11 @@ namespace BusinessLogic.Services
 
                 if (booking == null)
                     return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy booking.");
+
+                var state = await journey.GetState(accountId);
+                if (state?.ProfileCompleted != true || booking.VehicleModelId == null ||
+                    !state.EligibleVehicleModelIds.Contains(booking.VehicleModelId.Value))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Hồ sơ hoặc xe của lịch đặt chưa hợp lệ. Hãy cập nhật trước khi check-in.");
 
                 //  2. Kiểm tra trạng thái
                 if (!booking.Status.Equals(BookingStatus.Scheduled.ToString(), StringComparison.OrdinalIgnoreCase) &&
@@ -200,8 +113,13 @@ namespace BusinessLogic.Services
                 //  5. Mở khóa connector (nếu có gắn)
                 if (booking.ConnectorNavigation != null)
                 {
+                    if (await db.ChargingSessions.AnyAsync(s => !s.IsDeleted && s.ConnectorId == booking.ConnectorId &&
+                        (s.Status == "Charging" || s.Status == "Completed")))
+                        return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng còn phiên sạc hoặc hóa đơn chưa hoàn tất; không mở khóa.");
+                    if (booking.ConnectorNavigation.Status is "Faulted" or "OutOfService" or "Unknown")
+                        return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng không hoạt động, chưa thể check-in.");
                     booking.ConnectorNavigation.IsLocked = false;
-                    booking.ConnectorNavigation.Status = ConnectorStatus.Preparing.ToString(); // hoặc "Active"
+                    booking.ConnectorNavigation.Status = booking.ConnectorNavigation.IsPluggedIn ? "InUse" : "Preparing";
                 }
 
                 //  6. Cập nhật booking sang "InProgress"
@@ -226,12 +144,12 @@ namespace BusinessLogic.Services
 
 
 
-        public async Task<IServiceResult> CompleteBookingAsync(Guid bookingId)
+        public async Task<IServiceResult> CompleteBookingAsync(Guid bookingId, Guid? accountId = null)
         {
             try
             {
                 var booking = await _unitOfWork.BookingRepository.GetByIdAsync(
-                    predicate: b => !b.IsDeleted && b.Id == bookingId,
+                    predicate: b => !b.IsDeleted && b.Id == bookingId && (accountId == null || b.BookedBy == accountId),
                     asNoTracking: false
                 );
 
@@ -393,12 +311,12 @@ namespace BusinessLogic.Services
 
 
         // Lấy chi tiết 1 booking cụ thể
-        public async Task<IServiceResult> GetBookingDetail(Guid bookingId)
+        public async Task<IServiceResult> GetBookingDetail(Guid bookingId, Guid? accountId = null)
         {
             try
             {
                 var booking = await _unitOfWork.BookingRepository.GetByIdAsync(
-                    b => b.Id == bookingId && !b.IsDeleted,
+                    b => b.Id == bookingId && !b.IsDeleted && (accountId == null || b.BookedBy == accountId),
                     include: b => b
                         .Include(x => x.BookedByNavigation)
                         .Include(x => x.ChargingStationNavigation)
@@ -620,9 +538,15 @@ namespace BusinessLogic.Services
             {
                 var station = booking.ChargingStationNavigation;
 
-                var connector = station.ChargingPosts
+                var connector = station.ChargingPosts.Where(p => !p.IsDeleted)
                     .SelectMany(p => p.Connectors)
-                    .FirstOrDefault(c => c.Status == ConnectorStatus.Available.ToString());
+                    .FirstOrDefault(c => !c.IsDeleted && !c.IsLocked && !c.IsPluggedIn &&
+                        c.Status == ConnectorStatus.Available.ToString() &&
+                        (booking.VehicleModelId == null || c.Id == booking.ConnectorId));
+
+                // The journey already assigned a compatible connector at booking time.
+                // Leave it scheduled when temporarily unavailable; do not silently swap it.
+                if (booking.VehicleModelId != null && connector == null) continue;
 
                 if (connector == null)
                 {
@@ -804,4 +728,3 @@ namespace BusinessLogic.Services
         }
     }
 }
-    

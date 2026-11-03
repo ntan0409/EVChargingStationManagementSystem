@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using BusinessLogic.Base;
 using BusinessLogic.IServices;
 using Common;
@@ -13,14 +13,16 @@ namespace BusinessLogic.Services
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-        public async Task<IServiceResult> GetList()
+        public async Task<IServiceResult> GetList(Guid? operatorId = null)
         {
 
             try
             {
                 var transaction = await _unitOfWork.TransactionRepository.GetQueryable()
                     .AsNoTracking()
-                    .Where(v => !v.IsDeleted)
+                    .Where(v => !v.IsDeleted && (operatorId == null ||
+                        v.Payment != null && !v.Payment.IsDeleted &&
+                        v.Payment.ChargingSessionNavigation.ChargingPost.ChargingStationNavigation.OperatorId == operatorId))
                     .OrderByDescending(v => v.CreatedAt)
                     .ProjectToType<TransactionViewListDto>()
                     .ToListAsync();
@@ -64,14 +66,16 @@ namespace BusinessLogic.Services
             }
         }
 
-        public async Task<IServiceResult> GetById(Guid transactionId)
+        public async Task<IServiceResult> GetById(Guid transactionId, Guid? accountId = null, Guid? operatorId = null)
         {
 
             try
             {
                 var transaction = await _unitOfWork.TransactionRepository.GetQueryable()
                     .AsNoTracking()
-                    .Where(v => !v.IsDeleted && v.Id == transactionId)
+                    .Where(v => !v.IsDeleted && v.Id == transactionId && (accountId == null || v.PaidBy == accountId) &&
+                        (operatorId == null || v.Payment != null && !v.Payment.IsDeleted &&
+                        v.Payment.ChargingSessionNavigation.ChargingPost.ChargingStationNavigation.OperatorId == operatorId))
                     .ProjectToType<TransactionViewDetailDto>()
                     .FirstOrDefaultAsync();
                 if (transaction == null)

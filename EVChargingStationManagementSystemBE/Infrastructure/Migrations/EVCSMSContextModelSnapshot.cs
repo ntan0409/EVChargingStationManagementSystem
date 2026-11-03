@@ -79,6 +79,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("VehicleModelId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BookedBy");
@@ -86,6 +89,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ConnectorId");
 
                     b.HasIndex("StationId");
+
+                    b.HasIndex("VehicleModelId");
 
                     b.ToTable("Booking", (string)null);
                 });
@@ -1641,11 +1646,18 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Infrastructure.Models.VehicleModel", "VehicleModelNavigation")
+                        .WithMany()
+                        .HasForeignKey("VehicleModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("BookedByNavigation");
 
                     b.Navigation("ChargingStationNavigation");
 
                     b.Navigation("ConnectorNavigation");
+
+                    b.Navigation("VehicleModelNavigation");
                 });
 
             modelBuilder.Entity("Infrastructure.Models.ChargingPost", b =>

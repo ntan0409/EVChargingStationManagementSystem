@@ -47,6 +47,9 @@ namespace APIs.Controllers
             if (result.Status == Const.FAIL_READ_CODE || result.Status == Const.FAIL_CREATE_CODE)
                 return BadRequest(result.Message);
 
+            if (result.Status != Const.SUCCESS_READ_CODE || result.Data == null)
+                return StatusCode(503, new { message = result.Message });
+
             return Ok(result.Data);
         }
 

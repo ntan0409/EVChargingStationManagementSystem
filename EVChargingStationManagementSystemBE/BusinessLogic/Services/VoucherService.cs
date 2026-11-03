@@ -1,337 +1,146 @@
-﻿using BusinessLogic.Base;
+using BusinessLogic.Base;
 using BusinessLogic.IServices;
 using Common;
 using Common.DTOs.VoucherDto;
-using Infrastructure.IUnitOfWork;
+using Infrastructure.Data;
 using Infrastructure.Models;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 
-namespace BusinessLogic.Services
+namespace BusinessLogic.Services;
+
+public class VoucherService(EVCSMSContext db) : IVoucherService
 {
-    public class VoucherService(IUnitOfWork unitOfWork) : IVoucherService
+    private static IServiceResult Ok(object? data, string message = "Lấy voucher thành công") => new ServiceResult(Const.SUCCESS_READ_CODE, message, data);
+    private static IServiceResult Fail(string message) => new ServiceResult(Const.FAIL_UPDATE_CODE, message);
+    private static IServiceResult Missing() => new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy voucher hoặc phiên sạc của bạn.");
+
+    public async Task<IServiceResult> GetAvailableVouchers()
     {
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        var now = DateTime.Now;
+        return Ok(await db.Vouchers.AsNoTracking().Where(v => v.IsActive && v.ValidFrom <= now && v.ValidTo >= now)
+            .OrderByDescending(v => v.ValidFrom).ProjectToType<VoucherDto>().ToListAsync());
+    }
 
-        // 1) GET AVAILABLE VOUCHERS
-        public async Task<IServiceResult> GetAvailableVouchers()
+    public Task<IServiceResult> RedeemVoucher(Guid accountId, Guid voucherId) => DatabaseWork.Write(db, async () =>
+    {
+        var now = DateTime.Now;
+        var driver = await db.EVDrivers.FirstOrDefaultAsync(d => !d.IsDeleted && d.AccountId == accountId);
+        var voucher = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == voucherId && v.IsActive);
+        if (driver == null || voucher == null) return Missing();
+        if (voucher.ValidFrom > now || voucher.ValidTo < now) return Fail("Voucher chưa có hiệu lực hoặc đã hết hạn.");
+        if (!ValidValue(voucher)) return Fail("Giá trị voucher chưa hợp lệ.");
+        if (voucher.RequiredPoints < 0 || driver.Point < voucher.RequiredPoints) return Fail("Điểm thưởng không đủ để đổi voucher.");
+        if (await db.UserVouchers.AnyAsync(uv => uv.EVDriverId == driver.Id && uv.VoucherId == voucherId &&
+            uv.Status != "Expired" && uv.ExpiryDate >= now)) return Fail("Bạn đã đổi voucher này.");
+        driver.Point -= voucher.RequiredPoints;
+        driver.UpdatedAt = now;
+        var owned = new UserVoucher
         {
-            try
-            {
-                var now = DateTime.Now;
+            Id = Guid.NewGuid(), EVDriverId = driver.Id, VoucherId = voucher.Id, Voucher = voucher,
+            AssignedDate = now, RedeemDate = now, ExpiryDate = voucher.ValidTo,
+            Status = "Redeemed", CreatedAt = now, UpdatedAt = now
+        };
+        db.UserVouchers.Add(owned);
+        await db.SaveChangesAsync();
+        return Ok(OwnedDto(owned), "Đã đổi voucher trên máy chủ.");
+    });
 
-                var vouchers = await _unitOfWork.VoucherRepository.GetQueryable()
-                    .AsNoTracking()
-                    .Where(v => v.IsActive &&
-                                v.ValidFrom <= now &&
-                                v.ValidTo >= now)
-                    .OrderByDescending(v => v.ValidFrom)
-                    .ProjectToType<VoucherDto>()
-                    .ToListAsync();
+    public Task<IServiceResult> UseVoucher(Guid userVoucherId, Guid sessionId, Guid? accountId = null) => DatabaseWork.Write(db, async () =>
+    {
+        if (accountId == null) return Fail("Cần xác minh tài khoản để áp dụng voucher.");
+        var owned = await db.UserVouchers.Include(v => v.Voucher).Include(v => v.EVDriver)
+            .FirstOrDefaultAsync(v => v.Id == userVoucherId && v.EVDriver.AccountId == accountId && !v.EVDriver.IsDeleted);
+        var session = await db.ChargingSessions.FirstOrDefaultAsync(s => s.Id == sessionId && !s.IsDeleted && s.UserId == accountId);
+        if (owned == null || session == null) return Missing();
+        if (owned.Status == "Used" && owned.SessionId == sessionId)
+            return Ok(OwnedDto(owned), "Voucher đã được áp dụng cho phiên này.");
+        var now = DateTime.Now;
+        if (owned.Status != "Redeemed" || owned.ExpiryDate < now || !owned.Voucher.IsActive ||
+            owned.Voucher.ValidFrom > now || owned.Voucher.ValidTo < now)
+            return Fail("Voucher không còn đủ điều kiện sử dụng.");
+        if (session.Status != "Completed") return Fail("Chỉ áp dụng voucher sau khi dừng sạc và trước khi thanh toán.");
+        if (await db.Set<Payment>().AnyAsync(p => !p.IsDeleted && p.ChargingSessionId == sessionId))
+            return Fail("Hóa đơn đã được tạo; không thể thay đổi voucher hoặc số tiền.");
+        if (await db.UserVouchers.AnyAsync(v => v.SessionId == sessionId && v.Status == "Used"))
+            return Fail("Phiên đã sử dụng voucher; không được giảm giá cộng dồn.");
+        if (!ValidValue(owned.Voucher)) return Fail("Giá trị voucher không hợp lệ.");
+        var discount = owned.Voucher.VoucherType == "Discount"
+            ? session.Cost * owned.Voucher.Value / 100 : owned.Voucher.Value;
+        session.Cost = decimal.Round(Math.Max(0, session.Cost - discount), 2, MidpointRounding.AwayFromZero);
+        session.UpdatedAt = now;
+        owned.SessionId = sessionId;
+        owned.StationId = await db.ChargingPosts.Where(p => p.Id == session.ChargingPostId).Select(p => p.StationId).FirstAsync();
+        owned.Status = "Used";
+        owned.UsedDate = owned.UpdatedAt = now;
+        await db.SaveChangesAsync();
+        return Ok(OwnedDto(owned), "Máy chủ đã áp dụng voucher và cập nhật chi phí phiên.");
+    });
 
-                if (vouchers.Count == 0)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy voucher nào còn hiệu lực");
+    public async Task<IServiceResult> GetMyVouchers(Guid accountId)
+    {
+        var owned = await db.UserVouchers.AsNoTracking().Include(v => v.Voucher).Include(v => v.EVDriver)
+            .Where(v => v.EVDriver.AccountId == accountId && !v.EVDriver.IsDeleted)
+            .OrderByDescending(v => v.AssignedDate).ToListAsync();
+        return Ok(owned.Select(OwnedDto).ToList());
+    }
 
-                return new ServiceResult(Const.SUCCESS_READ_CODE, "Lấy danh sách voucher thành công", vouchers);
-            }
-            catch (Exception ex)
-            {
+    private static bool ValidValue(Voucher voucher) => voucher.Value >= 0 &&
+        (voucher.VoucherType == "Amount" || (voucher.VoucherType == "Discount" && voucher.Value <= 100));
 
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
+    private static UserVoucherDto OwnedDto(UserVoucher v) => new()
+    {
+        Id = v.Id, EVDriverId = v.EVDriverId, VoucherId = v.VoucherId, StationId = v.StationId, SessionId = v.SessionId,
+        AssignedDate = v.AssignedDate, RedeemDate = v.RedeemDate, UsedDate = v.UsedDate,
+        ExpiryDate = v.ExpiryDate, Status = v.Status, Note = v.Note,
+        VoucherName = v.Voucher.Name, VoucherValue = v.Voucher.Value, VoucherType = v.Voucher.VoucherType
+    };
 
+    public Task<IServiceResult> CreateVoucher(VoucherCreateDto dto) => DatabaseWork.Write(db, async () =>
+    {
+        var voucher = dto.Adapt<Voucher>();
+        if (!ValidValue(voucher) || voucher.RequiredPoints < 0 || voucher.ValidFrom > voucher.ValidTo)
+            return Fail("Thông số voucher không hợp lệ.");
+        voucher.Id = Guid.NewGuid(); voucher.IsActive = true;
+        db.Vouchers.Add(voucher); await db.SaveChangesAsync();
+        return Ok(voucher.Adapt<VoucherDto>(), "Tạo voucher thành công.");
+    });
 
-        // 2) CREATE VOUCHER
-        public async Task<IServiceResult> CreateVoucher(VoucherCreateDto dto)
-        {
-            try
-            {
-                var voucher = dto.Adapt<Voucher>();
-                voucher.Id = Guid.NewGuid();
-                voucher.IsActive = true;
+    public Task<IServiceResult> UpdateVoucher(VoucherUpdateDto dto, Guid id) => DatabaseWork.Write(db, async () =>
+    {
+        var voucher = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == id);
+        if (voucher == null) return Missing();
+        if (await db.UserVouchers.AnyAsync(v => v.VoucherId == id && v.Status != "Expired"))
+            return Fail("Voucher đã phát hành; không thay đổi điều kiện của voucher đang sử dụng.");
+        dto.Adapt(voucher); voucher.Id = id;
+        if (!ValidValue(voucher) || voucher.RequiredPoints < 0 || voucher.ValidFrom > voucher.ValidTo)
+            return Fail("Thông số voucher không hợp lệ.");
+        await db.SaveChangesAsync(); return Ok(voucher.Adapt<VoucherDto>(), "Cập nhật thành công.");
+    });
 
-                await _unitOfWork.VoucherRepository.CreateAsync(voucher);
-                await _unitOfWork.SaveChangesAsync();
+    public Task<IServiceResult> DeleteVoucher(Guid id) => DatabaseWork.Write(db, async () =>
+    {
+        var voucher = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == id);
+        if (voucher == null) return Missing();
+        voucher.IsActive = false; await db.SaveChangesAsync(); return Ok(null, "Đã vô hiệu voucher.");
+    });
 
-                return new ServiceResult(Const.SUCCESS_CREATE_CODE, "Tạo voucher thành công", voucher.Adapt<VoucherDto>());
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
+    public async Task<IServiceResult> GetAllVouchersForAdmin() => Ok(await db.Vouchers.AsNoTracking()
+        .OrderByDescending(v => v.ValidFrom).ProjectToType<VoucherDto>().ToListAsync());
 
+    public Task<IServiceResult> ExpireVoucher(Guid id) => DatabaseWork.Write(db, async () =>
+    {
+        var voucher = await db.UserVouchers.FirstOrDefaultAsync(v => v.Id == id);
+        if (voucher == null) return Missing();
+        if (voucher.ExpiryDate < DateTime.Now && voucher.Status != "Used")
+        { voucher.Status = "Expired"; voucher.UpdatedAt = DateTime.Now; await db.SaveChangesAsync(); }
+        return Ok(null, "Đã kiểm tra hạn sử dụng.");
+    });
 
-        // 3) UPDATE VOUCHER
-        public async Task<IServiceResult> UpdateVoucher(VoucherUpdateDto dto, Guid voucherId)
-        {
-            try
-            {
-                var voucher = await _unitOfWork.VoucherRepository
-                    .GetQueryable()
-                    .FirstOrDefaultAsync(v => v.Id == voucherId);
-
-                if (voucher == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Voucher không tồn tại");
-
-                dto.Adapt(voucher);
-                voucher.Id = voucherId;
-
-                await _unitOfWork.SaveChangesAsync();
-
-                return new ServiceResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật voucher thành công", voucher.Adapt<VoucherDto>());
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-
-        // 4) REDEEM VOUCHER
-        public async Task<IServiceResult> RedeemVoucher(Guid evDriverId, Guid voucherId)
-        {
-            try
-            {
-                var now = DateTime.Now;
-
-                var driver = await _unitOfWork.EVDriverRepository.GetQueryable()
-                    .FirstOrDefaultAsync(d => d.AccountId == evDriverId && !d.IsDeleted);
-
-                var voucher = await _unitOfWork.VoucherRepository.GetQueryable()
-                    .FirstOrDefaultAsync(v => v.Id == voucherId && v.IsActive);
-
-                if (driver == null || voucher == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy user hoặc voucher");
-
-                if (now < voucher.ValidFrom || now > voucher.ValidTo)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Voucher đã hết hạn hoặc chưa đến thời gian sử dụng");
-
-                if (driver.Point < voucher.RequiredPoints)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Điểm thưởng không đủ để đổi voucher");
-
-                bool alreadyRedeemed = await _unitOfWork.UserVoucherRepository.GetQueryable()
-                    .AnyAsync(uv => uv.EVDriverId == evDriverId && uv.VoucherId == voucherId && uv.Status != "Expired");
-
-                if (alreadyRedeemed)
-                    return new ServiceResult(Const.FAIL_CREATE_CODE, "Bạn đã đổi voucher này rồi");
-
-                driver.Point -= voucher.RequiredPoints;
-                driver.UpdatedAt = now;
-
-                var userVoucher = new UserVoucher
-                {
-                    Id = Guid.NewGuid(),
-                    EVDriverId = driver.Id,
-                    VoucherId = voucherId,
-                    AssignedDate = now,
-                    RedeemDate = now,
-                    ExpiryDate = voucher.ValidTo,
-                    Status = "Redeemed",
-                    CreatedAt = now,
-                    UpdatedAt = now
-                };
-
-                await _unitOfWork.UserVoucherRepository.CreateAsync(userVoucher);
-                await _unitOfWork.SaveChangesAsync();
-
-                return new ServiceResult(Const.SUCCESS_CREATE_CODE, "Đổi voucher thành công", userVoucher.Adapt<UserVoucherDto>());
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-
-        // 5) USE VOUCHER
-     
-        public async Task<IServiceResult> UseVoucher(Guid userVoucherId, Guid sessionId)
-        {
-            try
-            {
-                // 1️ Lấy thông tin voucher
-                var userVoucher = await _unitOfWork.UserVoucherRepository.GetQueryable()
-                    .Include(uv => uv.Voucher)
-                    .FirstOrDefaultAsync(uv => uv.Id == userVoucherId);
-
-                if (userVoucher == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Voucher không tồn tại");
-
-                if (userVoucher.Status != "Redeemed")
-                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Voucher chưa được redeem hoặc đã hết hạn");
-
-                // 2️ Lấy thông tin phiên sạc
-                var session = await _unitOfWork.ChargingSessionRepository.GetQueryable()
-                    .FirstOrDefaultAsync(s => s.Id == sessionId);
-
-                if (session == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy phiên sạc");
-
-                // 3️ Kiểm tra xem session đã có voucher nào chưa
-                var existingVoucher = await _unitOfWork.UserVoucherRepository.GetQueryable()
-                    .FirstOrDefaultAsync(uv => uv.SessionId == sessionId && uv.Status == "Used");
-
-                if (existingVoucher != null)
-                {
-                    //  Nếu đã có voucher thì gỡ ra trước khi gắn voucher mới
-                    existingVoucher.Status = "Redeemed"; // hoặc "Unused" nếu bạn có trạng thái này
-                    existingVoucher.SessionId = null;
-                    existingVoucher.UsedDate = null;
-                }
-
-                // 4️ Gắn voucher mới vào session
-                userVoucher.UsedDate = DateTime.Now;
-                userVoucher.SessionId = sessionId;
-                userVoucher.Status = "Used";
-
-                // 5️ Áp dụng giảm giá
-                if (userVoucher.Voucher != null)
-                {
-                    if (userVoucher.Voucher.VoucherType == "Discount")
-                    {
-                        var discount = session.Cost * (userVoucher.Voucher.Value / 100);
-                        session.Cost -= discount;
-                    }
-                    else if (userVoucher.Voucher.VoucherType == "Amount")
-                    {
-                        session.Cost -= userVoucher.Voucher.Value;
-                    }
-
-                    if (session.Cost < 0) session.Cost = 0;
-                }
-
-                // 6️ Lưu thay đổi
-                await _unitOfWork.SaveChangesAsync();
-
-                return new ServiceResult(Const.SUCCESS_UPDATE_CODE, "Áp dụng voucher thành công", userVoucher.Adapt<UserVoucherDto>());
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-
-
-        // 6) EXPIRE A SINGLE USER VOUCHER
-        public async Task<IServiceResult> ExpireVoucher(Guid userVoucherId)
-        {
-            try
-            {
-                var now = DateTime.Now;
-
-                var userVoucher = await _unitOfWork.UserVoucherRepository.GetQueryable()
-                    .FirstOrDefaultAsync(uv => uv.Id == userVoucherId);
-
-                if (userVoucher == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Voucher không tồn tại");
-
-                if (userVoucher.ExpiryDate < now && userVoucher.Status != "Used")
-                    userVoucher.Status = "Expired";
-
-                await _unitOfWork.SaveChangesAsync();
-
-                return new ServiceResult(Const.SUCCESS_UPDATE_CODE, "Voucher đã hết hạn");
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-
-
-        // 7) DELETE VOUCHER (SOFT)
-        public async Task<IServiceResult> DeleteVoucher(Guid voucherId)
-        {
-            try
-            {
-                var voucher = await _unitOfWork.VoucherRepository.GetQueryable()
-                    .FirstOrDefaultAsync(v => v.Id == voucherId);
-
-                if (voucher == null)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Voucher không tồn tại");
-
-                voucher.IsActive = false;
-
-                await _unitOfWork.SaveChangesAsync();
-                return new ServiceResult(Const.SUCCESS_DELETE_CODE, "Xoá voucher thành công");
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-        // Admin xem tất cả voucher (kể cả Inactive)
-        public async Task<IServiceResult> GetAllVouchersForAdmin()
-        {
-            try
-            {
-                var vouchers = await _unitOfWork.VoucherRepository.GetQueryable()
-                    .AsNoTracking()
-                    .OrderByDescending(v => v.ValidFrom)
-                    .ProjectToType<VoucherDto>()
-                    .ToListAsync();
-
-                if (vouchers.Count == 0)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy voucher nào.");
-
-                return new ServiceResult(Const.SUCCESS_READ_CODE, "Lấy danh sách voucher thành công.", vouchers);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-        // EVDriver xem voucher của mình
-        public async Task<IServiceResult> GetMyVouchers(Guid evDriverId)
-        {
-            try
-            {
-                var now = DateTime.Now;
-
-                var userVouchers = await _unitOfWork.UserVoucherRepository.GetQueryable()
-                    .Include(uv => uv.Voucher)
-                    .Where(uv => uv.EVDriverId == evDriverId
-                                 && uv.Voucher.IsActive
-                                 && uv.Voucher.ValidFrom <= now
-                                 && uv.Voucher.ValidTo >= now)
-                    .OrderByDescending(uv => uv.AssignedDate)
-                    .ProjectToType<UserVoucherDto>()
-                    .ToListAsync();
-
-                if (userVouchers.Count == 0)
-                    return new ServiceResult(Const.WARNING_NO_DATA_CODE, "Không tìm thấy voucher nào.");
-
-                return new ServiceResult(Const.SUCCESS_READ_CODE, "Lấy danh sách voucher thành công.", userVouchers);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResult(Const.ERROR_EXCEPTION, "Đã xảy ra lỗi: " + ex.Message);
-            }
-        }
-
-
-
-        // 8) EXPIRE ALL EXPIRED VOUCHERS (Background Job)
-        public async Task<int> ExpireAllExpiredVouchers()
-        {
-            var now = DateTime.Now;
-
-            var expiredVouchers = await _unitOfWork.UserVoucherRepository.GetQueryable()
-                .Where(uv => uv.Status != "Used" && uv.ExpiryDate < now)
-                .ToListAsync();
-
-            if (expiredVouchers.Count == 0)
-                return 0;
-
-            foreach (var uv in expiredVouchers)
-            {
-                uv.Status = "Expired";
-                uv.UpdatedAt = now;
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-            return expiredVouchers.Count;
-        }
+    public async Task<int> ExpireAllExpiredVouchers()
+    {
+        var expired = await db.UserVouchers.Where(v => v.Status != "Used" && v.Status != "Expired" && v.ExpiryDate < DateTime.Now).ToListAsync();
+        foreach (var voucher in expired) { voucher.Status = "Expired"; voucher.UpdatedAt = DateTime.Now; }
+        await db.SaveChangesAsync(); return expired.Count;
     }
 }
-

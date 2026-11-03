@@ -25,5 +25,8 @@ namespace Common.DTOs.ProfileEVDriverDto
 
         // Danh sách xe
         public List<Guid> VehicleModelIds { get; set; } = new();
+        public bool ProfileCompleted { get; set; }
+        public List<string> MissingRequirements { get; set; } = [];
+        public List<Guid> EligibleVehicleModelIds { get; set; } = [];
     }
 }

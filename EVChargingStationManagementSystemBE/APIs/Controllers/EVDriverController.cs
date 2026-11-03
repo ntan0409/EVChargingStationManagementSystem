@@ -6,6 +6,7 @@ using Common.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using BusinessLogic.Services;
 
 namespace APIs.Controllers
 {
@@ -14,6 +15,13 @@ namespace APIs.Controllers
     public class EVDriverController : ControllerBase
     {
         private readonly IEVDriverService _evDriverService;
+        [HttpGet("eligibility")]
+        [Authorize(Roles = "EVDriver")]
+        public async Task<IActionResult> Eligibility([FromServices] DriverJourneyService journey)
+        {
+            var state = await journey.GetState(User.GetUserId());
+            return state == null ? NotFound(new { message = "Không tìm thấy hồ sơ tài xế." }) : Ok(new { data = state });
+        }
 
         public EVDriverController(IEVDriverService evDriverService)
         {
@@ -41,6 +49,11 @@ namespace APIs.Controllers
         [Authorize(Roles = "Admin,EVDriver")]
         public async Task<IActionResult> GetById([FromRoute] Guid driverId)
         {
+            if (!User.IsInRole("Admin"))
+            {
+                var own = await _evDriverService.GetMyProfile(User.GetUserId());
+                if (own.Data is not EVDriverViewDto profile || profile.Id != driverId) return Forbid();
+            }
             var result = await _evDriverService.GetById(driverId);
 
             if (result.Status == Const.SUCCESS_READ_CODE)
@@ -53,8 +66,10 @@ namespace APIs.Controllers
         }
 
         [HttpGet("account/{accountId}")]
+        [Authorize(Roles = "Admin,EVDriver")]
         public async Task<IActionResult> GetByAccountId(Guid accountId)
         {
+            if (!User.IsInRole("Admin") && User.GetUserId() != accountId) return Forbid();
             var result = await _evDriverService.GetByAccountId(accountId);
 
             if (result.Status == Const.FAIL_READ_CODE)
@@ -74,6 +89,11 @@ namespace APIs.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            // Garage changes used by charging must belong to the authenticated driver.
+            var ownProfile = await _evDriverService.GetMyProfile(User.GetUserId());
+            if (ownProfile.Data is not EVDriverViewDto profile || profile.Id != dto.DriverId)
+                return Forbid();
 
             var result = await _evDriverService.UpdateProfile(dto);
 

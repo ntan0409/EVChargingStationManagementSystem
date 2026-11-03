@@ -1,3 +1,5 @@
+import '../core/network/api_contract.dart';
+
 class VehicleModel {
   final String id;
   final String modelName;
@@ -23,21 +25,24 @@ class VehicleModel {
 
   factory VehicleModel.fromJson(Map<String, dynamic> json) {
     return VehicleModel(
-      id: json['id']?.toString() ?? '',
+      id: contractId(json['id']),
       modelName: json['modelName']?.toString() ?? 'Xe điện',
       modelYear: json['modelYear'] is int
           ? json['modelYear']
-          : int.tryParse(json['modelYear']?.toString() ?? '2024') ?? 2024,
-      vehicleType: json['vehicleType']?.toString() ?? 'Car',
+          : int.tryParse(json['modelYear']?.toString() ?? '') ?? 0,
+      vehicleType: json['vehicleType']?.toString() ?? 'Unknown',
       batteryCapacityKWh: json['batteryCapacityKWh'] is int
           ? json['batteryCapacityKWh']
-          : int.tryParse(json['batteryCapacityKWh']?.toString() ?? '80') ?? 80,
+          : int.tryParse(json['batteryCapacityKWh']?.toString() ?? '') ?? 0,
       recommendedChargingPowerKW: json['recommendedChargingPowerKW'] is int
           ? json['recommendedChargingPowerKW']
-          : int.tryParse(json['recommendedChargingPowerKW']?.toString() ?? '60') ?? 60,
+          : int.tryParse(
+                  json['recommendedChargingPowerKW']?.toString() ?? '',
+                ) ??
+                0,
       imageUrl: json['imageUrl']?.toString() ?? '',
       status: json['status']?.toString() ?? 'Active',
-      licensePlate: json['licensePlate']?.toString() ?? '51K-987.65',
+      licensePlate: json['licensePlate']?.toString(),
     );
   }
 

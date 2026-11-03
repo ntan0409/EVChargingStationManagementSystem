@@ -18,6 +18,11 @@ namespace BusinessLogic.Services
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
+        private async Task<decimal?> CurrentPrice() => await _unitOfWork.SystemConfigurationRepository.GetQueryable()
+            .AsNoTracking().Where(c => !c.IsDeleted && c.Name == "PRICE_PER_kWH" && c.EffectedDateFrom <= DateTime.Now &&
+                (c.EffectedDateTo == null || c.EffectedDateTo >= DateTime.Now))
+            .OrderByDescending(c => c.EffectedDateFrom).Select(c => c.MinValue).FirstOrDefaultAsync();
+
         public async Task<IServiceResult> GetList()
         {
 
@@ -30,6 +35,9 @@ namespace BusinessLogic.Services
                     .OrderByDescending( c => c.CreatedAt)
                     .ProjectToType<ChargingStationViewGeneralDto>()
                     .ToListAsync();
+
+                var price = await CurrentPrice();
+                foreach (var item in chargingStation) item.PricePerKWh = price;
 
                 if (chargingStation == null || chargingStation.Count == 0)
                     return new ServiceResult(
@@ -66,6 +74,7 @@ namespace BusinessLogic.Services
                 else
                 {
                     var response = chargingStation.Adapt<ChargingStationsViewDetailDto>();
+                    response.PricePerKWh = await CurrentPrice();
                     return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, response);
                 }
             }

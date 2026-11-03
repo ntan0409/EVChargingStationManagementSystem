@@ -1,62 +1,150 @@
 import 'package:flutter/material.dart';
+import '../core/network/api_response.dart';
 import '../models/voucher_model.dart';
 import '../services/voucher_service.dart';
 
 class VoucherProvider extends ChangeNotifier {
-  final VoucherService _voucherService = VoucherService();
-
+  final VoucherService _voucherService;
+  VoucherProvider({VoucherService? voucherService})
+    : _voucherService = voucherService ?? VoucherService();
   List<VoucherModel> _vouchers = [];
-  VoucherModel? _selectedVoucher;
-  bool _isLoading = false;
+  List<UserVoucherModel> _owned = [];
+  int? _points;
+  bool _fetching = false;
+  bool _mutating = false;
+  bool _disposed = false;
+  int _epoch = 0;
   String? _errorMessage;
-
-  List<VoucherModel> get vouchers => _vouchers;
-  VoucherModel? get selectedVoucher => _selectedVoucher;
-  bool get isLoading => _isLoading;
+  String? _account;
+  List<VoucherModel> get vouchers => List.unmodifiable(_vouchers);
+  List<UserVoucherModel> get ownedVouchers => List.unmodifiable(_owned);
+  int? get points => _points;
+  bool get isLoading => _fetching || _mutating;
   String? get errorMessage => _errorMessage;
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
 
-  void selectVoucher(VoucherModel? voucher) {
-    if (_selectedVoucher?.id == voucher?.id) {
-      _selectedVoucher = null; // Unselect if tapping same
-    } else {
-      _selectedVoucher = voucher;
-    }
-    notifyListeners();
+  bool _active(int epoch) => !_disposed && epoch == _epoch;
+  void bindAccount(String? account) {
+    if (_account == account) return;
+    _account = account;
+    _epoch++;
+    _vouchers = [];
+    _owned = [];
+    _points = null;
+    _fetching = _mutating = false;
+    _errorMessage = null;
+    Future.microtask(_notify);
   }
 
   Future<void> fetchVouchers() async {
-    _isLoading = true;
+    if (_disposed || _fetching) return;
+    final epoch = _epoch;
+    _fetching = true;
     _errorMessage = null;
-    notifyListeners();
-
+    _vouchers = [];
+    _owned = [];
+    _points = null;
+    _notify();
     try {
-      final response = await _voucherService.getAvailableVouchers();
-      if (response.success && response.data != null) {
-        _vouchers = response.data!;
+      final responses = await Future.wait<Object>([
+        _voucherService.getAvailableVouchers(),
+        _voucherService.getMyVouchers(),
+        _voucherService.getPoints(),
+      ]);
+      if (!_active(epoch)) return;
+      final catalog = responses[0] as ApiResponse<List<VoucherModel>>;
+      final owned = responses[1] as ApiResponse<List<UserVoucherModel>>;
+      final points = responses[2] as ApiResponse<int>;
+      if (!catalog.success || catalog.data == null) {
+        _errorMessage = catalog.message;
+      } else if (!owned.success || owned.data == null) {
+        _errorMessage = owned.message;
+      } else if (!points.success || points.data == null) {
+        _errorMessage = points.message;
       } else {
-        _errorMessage = response.message;
+        _vouchers = catalog.data!;
+        _owned = owned.data!;
+        _points = points.data;
       }
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (_) {
+      if (_active(epoch)) {
+        _errorMessage = 'Không tải được voucher và điểm thưởng từ máy chủ.';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (_active(epoch)) {
+        _fetching = false;
+        _notify();
+      }
     }
   }
 
   Future<bool> redeemVoucher(String voucherId) async {
-    _isLoading = true;
-    notifyListeners();
-
+    if (_disposed || isLoading) return false;
+    final epoch = _epoch;
+    _mutating = true;
+    _errorMessage = null;
+    _notify();
     try {
       final response = await _voucherService.redeemVoucher(voucherId);
-      _isLoading = false;
-      notifyListeners();
-      return response.success;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
+      if (!_active(epoch)) return false;
+      if (!response.success || response.data == null) {
+        _errorMessage = response.message;
+        return false;
+      }
+      await fetchVouchers();
+      return true;
+    } catch (_) {
+      if (_active(epoch)) {
+        _errorMessage =
+            'Chưa xác nhận đổi voucher. Hãy tải lại danh sách trước khi thử lại.';
+      }
       return false;
+    } finally {
+      if (_active(epoch)) {
+        _mutating = false;
+        _notify();
+      }
     }
+  }
+
+  Future<bool> applyVoucher(String userVoucherId, String sessionId) async {
+    if (_disposed || isLoading) return false;
+    final epoch = _epoch;
+    _mutating = true;
+    _errorMessage = null;
+    _notify();
+    try {
+      final response = await _voucherService.useVoucher(
+        userVoucherId,
+        sessionId,
+      );
+      if (!_active(epoch)) return false;
+      if (!response.success || response.data == null) {
+        _errorMessage = response.message;
+        return false;
+      }
+      await fetchVouchers();
+      return true;
+    } catch (_) {
+      if (_active(epoch)) {
+        _errorMessage =
+            'Chưa xác nhận áp dụng voucher. Kiểm tra lại phiên trước khi thử lại.';
+      }
+      return false;
+    } finally {
+      if (_active(epoch)) {
+        _mutating = false;
+        _notify();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _epoch++;
+    super.dispose();
   }
 }

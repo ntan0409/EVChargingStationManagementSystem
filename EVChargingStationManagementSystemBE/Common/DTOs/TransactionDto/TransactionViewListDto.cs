@@ -1,4 +1,4 @@
-﻿using Common.Enum.Transaction;
+using Common.Enum.Transaction;
 using System.Text.Json.Serialization;
 
 namespace Common.DTOs.TransactionDto
@@ -14,5 +14,12 @@ namespace Common.DTOs.TransactionDto
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public TransactionStatus Status { get; set; } = TransactionStatus.Unknown;
+        public Guid? PaymentId { get; set; }
+        public Guid? ChargingSessionId { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? PaymentStatus { get; set; }
+        public string? PaymentReference { get; set; }
+        public DateTime InitiatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
     }
 }

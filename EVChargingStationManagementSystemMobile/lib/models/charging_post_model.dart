@@ -1,4 +1,5 @@
 import 'connector_model.dart';
+import '../core/network/api_contract.dart';
 
 class ChargingPostModel {
   final String id;
@@ -32,17 +33,18 @@ class ChargingPostModel {
     }
 
     return ChargingPostModel(
-      id: json['id']?.toString() ?? '',
+      id: contractId(json['id']),
       postName: json['postName']?.toString() ?? 'Trụ sạc',
-      connectorType: json['connectorType']?.toString() ?? 'CCS2',
-      vehicleTypeSupported: json['vehicleTypeSupported']?.toString() ?? 'Car',
+      connectorType: json['connectorType']?.toString() ?? 'Unknown',
+      vehicleTypeSupported:
+          json['vehicleTypeSupported']?.toString() ?? 'Unknown',
       maxPowerKw: json['maxPowerKw'] is int
           ? json['maxPowerKw']
-          : int.tryParse(json['maxPowerKw']?.toString() ?? '0') ?? 60,
+          : int.tryParse(json['maxPowerKw']?.toString() ?? '0') ?? 0,
       totalConnectors: json['totalConnectors'] is int
           ? json['totalConnectors']
-          : int.tryParse(json['totalConnectors']?.toString() ?? '0') ?? 2,
-      status: json['status']?.toString() ?? 'Available',
+          : int.tryParse(json['totalConnectors']?.toString() ?? '0') ?? 0,
+      status: json['status']?.toString() ?? 'Unknown',
       stationId: json['stationId']?.toString() ?? '',
       connectors: rawConnectors,
     );

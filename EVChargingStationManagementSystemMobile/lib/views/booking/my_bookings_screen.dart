@@ -6,8 +6,11 @@ import '../../models/booking_model.dart';
 import '../../providers/booking_provider.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/api_problem.dart';
 import 'create_booking_screen.dart';
 import 'checkin_qr_screen.dart';
+import '../../services/station_service.dart';
+import '../charging/start_charging_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -16,14 +19,56 @@ class MyBookingsScreen extends StatefulWidget {
   State<MyBookingsScreen> createState() => _MyBookingsScreenState();
 }
 
-class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerProviderStateMixin {
+class _MyBookingsScreenState extends State<MyBookingsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  Future<void> _continueBooking(BookingModel booking) async {
+    final provider = context.read<BookingProvider>();
+    if (provider.isLoading) return;
+    if (booking.status != 'InProgress') {
+      if (booking.checkInCode == null) return;
+      final accepted = await provider.checkIn(booking.checkInCode!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accepted
+                ? 'Máy chủ đã xác nhận check-in. Chọn tiếp tục để mở cổng sạc.'
+                : provider.errorMessage ?? 'Chưa thể check-in.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (booking.connectorId == null) return;
+    final location = await StationService().resolveConnector(
+      booking.connectorId!,
+    );
+    if (!mounted) return;
+    if (!location.success || location.data == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(location.message)));
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StartChargingScreen(
+          connector: location.data!.connector,
+          station: location.data!.station,
+        ),
+      ),
+    );
+    if (mounted) provider.fetchMyBookings();
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Provider.of<BookingProvider>(context, listen: false).fetchMyBookings();
     });
   }
@@ -39,7 +84,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hủy lịch đặt sạc?'),
-        content: Text('Bạn có chắc chắn muốn hủy lịch đặt tại "${booking.stationName}" vào lúc ${Formatters.formatDateTime(booking.startTime)} không?'),
+        content: Text(
+          'Bạn có chắc chắn muốn hủy lịch đặt tại "${booking.stationName}" vào lúc ${Formatters.formatDateTime(booking.startTime)} không?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -49,12 +96,19 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              final success = await Provider.of<BookingProvider>(context, listen: false).cancelBooking(booking.id);
+              final success = await Provider.of<BookingProvider>(
+                context,
+                listen: false,
+              ).cancelBooking(booking.id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? 'Đã hủy lịch đặt thành công' : 'Hủy thất bại'),
-                    backgroundColor: success ? AppColors.success : AppColors.error,
+                    content: Text(
+                      success ? 'Đã hủy lịch đặt thành công' : 'Hủy thất bại',
+                    ),
+                    backgroundColor: success
+                        ? AppColors.success
+                        : AppColors.error,
                   ),
                 );
               }
@@ -83,10 +137,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Đang hiệu lực'),
+                  const Flexible(
+                    child: Text(
+                      'Đang hiệu lực',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   if (bookingProvider.activeBookings.isNotEmpty) ...[
                     const SizedBox(width: 6),
-                    Badge(label: Text('${bookingProvider.activeBookings.length}')),
+                    Badge(
+                      label: Text('${bookingProvider.activeBookings.length}'),
+                    ),
                   ],
                 ],
               ),
@@ -143,10 +205,19 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
       return const Center(child: CircularProgressIndicator());
     }
 
+    final provider = context.read<BookingProvider>();
+    if (provider.errorMessage != null) {
+      return ApiProblem(
+        message: provider.errorMessage!,
+        onRetry: provider.fetchMyBookings,
+      );
+    }
     if (list.isEmpty) {
       return EmptyState(
         icon: Icons.event_busy,
-        title: isActiveTab ? 'Không có lịch đặt nào đang chờ' : 'Chưa có lịch sử đặt',
+        title: isActiveTab
+            ? 'Không có lịch đặt nào đang chờ'
+            : 'Chưa có lịch sử đặt',
         description: isActiveTab
             ? 'Bạn có thể đặt trước vị trí sạc để không phải chờ đợi khi đến trạm.'
             : 'Các lịch đặt đã hoàn tất hoặc đã hủy sẽ được lưu trữ tại đây.',
@@ -154,7 +225,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
         onButtonPressed: isActiveTab
             ? () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CreateBookingScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const CreateBookingScreen(),
+                  ),
                 );
               }
             : null,
@@ -169,7 +242,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
         return Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -181,7 +256,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
                     Expanded(
                       child: Text(
                         booking.stationName ?? 'Trạm sạc',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -200,20 +278,36 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildInfoColumn('Thời gian bắt đầu', Formatters.formatDateTime(booking.startTime)),
-                    _buildInfoColumn('Mã Check-in', booking.checkInCode ?? '8942', isBold: true),
+                    _buildInfoColumn(
+                      'Thời gian bắt đầu',
+                      Formatters.formatDateTime(booking.startTime),
+                    ),
+                    _buildInfoColumn(
+                      'Mã Check-in',
+                      booking.checkInCode ?? 'Chưa có',
+                      isBold: true,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildInfoColumn('Xe sử dụng', booking.vehicleName ?? 'VinFast VF8'),
-                    _buildInfoColumn('Chi phí tạm tính', Formatters.formatCurrency(booking.estimatedCost)),
+                    _buildInfoColumn(
+                      'Xe sử dụng',
+                      booking.vehicleName ?? 'Chưa có thông tin',
+                    ),
+                    _buildInfoColumn(
+                      'Chi phí tạm tính',
+                      booking.hasEstimatedCost
+                          ? Formatters.formatCurrency(booking.estimatedCost)
+                          : 'Máy chủ chưa cung cấp',
+                    ),
                   ],
                 ),
 
-                if (isActiveTab && (booking.isScheduled || booking.isInProgress)) ...[
+                if (isActiveTab &&
+                    (booking.isScheduled || booking.isInProgress)) ...[
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -222,11 +316,17 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.error,
                             side: const BorderSide(color: AppColors.error),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           icon: const Icon(Icons.cancel_outlined, size: 18),
                           label: const Text('Hủy Đặt'),
-                          onPressed: () => _showCancelDialog(context, booking),
+                          onPressed:
+                              context.watch<BookingProvider>().isLoading ||
+                                  booking.isInProgress
+                              ? null
+                              : () => _showCancelDialog(context, booking),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -235,20 +335,37 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           icon: const Icon(Icons.qr_code, size: 18),
                           label: const Text('Mã Check-in'),
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => CheckinQrScreen(booking: booking),
+                                builder: (_) =>
+                                    CheckinQrScreen(booking: booking),
                               ),
                             );
                           },
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: context.watch<BookingProvider>().isLoading
+                          ? null
+                          : () => _continueBooking(booking),
+                      child: Text(
+                        booking.isInProgress
+                            ? 'Tiếp tục tới cổng sạc'
+                            : 'Check-in với máy chủ',
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -260,20 +377,25 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> with SingleTickerPr
   }
 
   Widget _buildInfoColumn(String label, String value, {bool isBold = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: isBold ? AppColors.primary : null,
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: isBold ? AppColors.primary : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

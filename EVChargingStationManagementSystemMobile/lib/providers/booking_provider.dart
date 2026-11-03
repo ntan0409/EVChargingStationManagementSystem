@@ -3,38 +3,58 @@ import '../models/booking_model.dart';
 import '../services/booking_service.dart';
 
 class BookingProvider extends ChangeNotifier {
-  final BookingService _bookingService = BookingService();
-
+  final BookingService _bookingService;
+  BookingProvider({BookingService? bookingService})
+    : _bookingService = bookingService ?? BookingService();
   List<BookingModel> _bookings = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  List<BookingModel> get bookings => _bookings;
+  bool _isLoading = false, _disposed = false;
+  int _epoch = 0;
+  String? _account, _errorMessage;
+  List<BookingModel> get bookings => List.unmodifiable(_bookings);
   List<BookingModel> get activeBookings =>
       _bookings.where((b) => b.isScheduled || b.isInProgress).toList();
   List<BookingModel> get historyBookings =>
       _bookings.where((b) => b.isCompleted || b.isCancelled).toList();
-
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void bindAccount(String? account) {
+    if (_account == account) return;
+    _account = account;
+    _epoch++;
+    _bookings = [];
+    _isLoading = false;
+    _errorMessage = null;
+    Future.microtask(_notify);
+  }
 
   Future<void> fetchMyBookings() async {
+    if (_disposed || _isLoading) return;
+    final epoch = _epoch;
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
-
+    _bookings = [];
+    _notify();
     try {
-      final response = await _bookingService.getMyBookings();
-      if (response.success && response.data != null) {
-        _bookings = response.data!;
+      final result = await _bookingService.getMyBookings();
+      if (_disposed || epoch != _epoch) return;
+      if (result.success && result.data != null) {
+        _bookings = result.data!;
       } else {
-        _errorMessage = response.message;
+        _errorMessage = result.message;
       }
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (_) {
+      if (!_disposed && epoch == _epoch) {
+        _errorMessage = 'Không tải được lịch đặt.';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && epoch == _epoch) {
+        _isLoading = false;
+        _notify();
+      }
     }
   }
 
@@ -43,84 +63,75 @@ class BookingProvider extends ChangeNotifier {
     required String vehicleId,
     required DateTime startTime,
   }) async {
+    if (_disposed || _isLoading) return false;
+    final epoch = _epoch;
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
-
+    _notify();
     try {
-      final response = await _bookingService.createBooking(
+      final result = await _bookingService.createBooking(
         stationId: stationId,
         vehicleId: vehicleId,
         startTime: startTime,
       );
-
-      _isLoading = false;
-      if (response.success && response.data != null) {
-        _bookings.insert(0, response.data!);
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = response.message;
-        notifyListeners();
+      if (_disposed || epoch != _epoch) return false;
+      if (!result.success || result.data == null) {
+        _errorMessage = result.message;
         return false;
       }
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> checkIn(String code) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final response = await _bookingService.checkInBooking(code);
-      _isLoading = false;
-      notifyListeners();
-      return response.success;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> cancelBooking(String bookingId) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final response = await _bookingService.cancelBooking(bookingId);
-      _isLoading = false;
-      if (response.success) {
-        final index = _bookings.indexWhere((b) => b.id == bookingId);
-        if (index != -1) {
-          _bookings[index] = BookingModel(
-            id: _bookings[index].id,
-            checkInCode: _bookings[index].checkInCode,
-            startTime: _bookings[index].startTime,
-            endTime: _bookings[index].endTime,
-            status: 'Cancelled',
-            stationId: _bookings[index].stationId,
-            stationName: _bookings[index].stationName,
-            location: _bookings[index].location,
-            chargingPostName: _bookings[index].chargingPostName,
-            connectorName: _bookings[index].connectorName,
-            vehicleName: _bookings[index].vehicleName,
-            estimatedCost: _bookings[index].estimatedCost,
-          );
-        }
-        notifyListeners();
-        return true;
+      _bookings = [
+        result.data!,
+        ..._bookings.where((b) => b.id != result.data!.id),
+      ];
+      return true;
+    } catch (_) {
+      if (!_disposed && epoch == _epoch) {
+        _errorMessage =
+            'Chưa xác nhận đặt lịch. Kiểm tra danh sách trước khi thử lại.';
       }
       return false;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      return false;
+    } finally {
+      if (!_disposed && epoch == _epoch) {
+        _isLoading = false;
+        _notify();
+      }
     }
+  }
+
+  Future<bool> _mutate(Future<dynamic> Function() action) async {
+    if (_disposed || _isLoading) return false;
+    final epoch = _epoch;
+    _isLoading = true;
+    _errorMessage = null;
+    _notify();
+    var accepted = false;
+    try {
+      final result = await action();
+      if (_disposed || epoch != _epoch) return false;
+      accepted = result.success;
+      if (!accepted) _errorMessage = result.message;
+    } catch (_) {
+      if (!_disposed && epoch == _epoch) {
+        _errorMessage = 'Chưa xác nhận thao tác với máy chủ.';
+      }
+    } finally {
+      if (!_disposed && epoch == _epoch) {
+        _isLoading = false;
+        _notify();
+      }
+    }
+    if (accepted && !_disposed && epoch == _epoch) await fetchMyBookings();
+    return accepted;
+  }
+
+  Future<bool> checkIn(String code) =>
+      _mutate(() => _bookingService.checkInBooking(code));
+  Future<bool> cancelBooking(String id) =>
+      _mutate(() => _bookingService.cancelBooking(id));
+  @override
+  void dispose() {
+    _disposed = true;
+    _epoch++;
+    super.dispose();
   }
 }

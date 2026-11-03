@@ -1,4 +1,5 @@
 import 'charging_post_model.dart';
+import '../core/network/api_contract.dart';
 
 class StationModel {
   final String id;
@@ -20,6 +21,8 @@ class StationModel {
   final double pricePerKWh;
   final double distanceKm;
   final List<ChargingPostModel> chargingPosts;
+  final bool hasPrice;
+  final bool hasDistance;
 
   StationModel({
     required this.id,
@@ -41,31 +44,45 @@ class StationModel {
     this.pricePerKWh = 3850,
     this.distanceKm = 0.0,
     this.chargingPosts = const [],
+    this.hasPrice = true,
+    this.hasDistance = true,
   });
 
+  static double _coordinate(Object? value) {
+    final text = value.toString().trim().toUpperCase();
+    final suffix = RegExp(r'[NSEW]$').firstMatch(text);
+    if (suffix == null) return double.parse(text);
+    final magnitude = double.parse(text.substring(0, suffix.start)).abs();
+    return suffix.group(0) == 'S' || suffix.group(0) == 'W'
+        ? -magnitude
+        : magnitude;
+  }
+
   factory StationModel.fromJson(Map<String, dynamic> json) {
-    double lat = 10.7769; // Default HCM
-    double lng = 106.7009;
+    double lat = 0;
+    double lng = 0;
 
     if (json['latitude'] != null) {
-      lat = double.tryParse(json['latitude'].toString()) ?? 10.7769;
+      lat = _coordinate(json['latitude']);
     }
     if (json['longitude'] != null) {
-      lng = double.tryParse(json['longitude'].toString()) ?? 106.7009;
+      lng = _coordinate(json['longitude']);
     }
 
     var posts = <ChargingPostModel>[];
     if (json['chargingPosts'] != null && json['chargingPosts'] is List) {
       posts = (json['chargingPosts'] as List)
-          .map((item) => ChargingPostModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => ChargingPostModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     }
 
     return StationModel(
-      id: json['id']?.toString() ?? '',
+      id: contractId(json['id']),
       stationName: json['stationName']?.toString() ?? 'Trạm sạc xe điện',
       location: json['location']?.toString() ?? '',
-      province: json['province']?.toString() ?? 'Hồ Chí Minh',
+      province: json['province']?.toString() ?? '',
       latitude: lat,
       longitude: lng,
       totalBikeChargingPosts: json['totalBikeChargingPosts'] ?? 0,
@@ -76,10 +93,16 @@ class StationModel {
       availableBikeConnectors: json['availableBikeConnectors'] ?? 0,
       totalCarChargingConnectors: json['totalCarChargingConnectors'] ?? 0,
       availableCarConnectors: json['availableCarConnectors'] ?? 0,
-      status: json['status']?.toString() ?? 'Active',
+      status: json['status']?.toString() ?? 'Unknown',
       operatorName: json['operatorName']?.toString(),
-      pricePerKWh: (json['pricePerKWh'] as num?)?.toDouble() ?? 3850.0,
-      distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 1.2,
+      pricePerKWh: json['pricePerKWh'] == null
+          ? 0
+          : contractNumber(json['pricePerKWh']),
+      distanceKm: json['distanceKm'] == null
+          ? 0
+          : contractNumber(json['distanceKm']),
+      hasPrice: json['pricePerKWh'] != null,
+      hasDistance: json['distanceKm'] != null,
       chargingPosts: posts,
     );
   }
@@ -107,6 +130,8 @@ class StationModel {
     };
   }
 
-  int get totalAvailableConnectors => availableBikeConnectors + availableCarConnectors;
-  int get totalAllConnectors => totalBikeConnectors + totalCarChargingConnectors;
+  int get totalAvailableConnectors =>
+      availableBikeConnectors + availableCarConnectors;
+  int get totalAllConnectors =>
+      totalBikeConnectors + totalCarChargingConnectors;
 }

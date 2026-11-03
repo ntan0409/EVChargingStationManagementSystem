@@ -1,337 +1,362 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/charging_session_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/voucher_provider.dart';
+import '../widgets/api_problem.dart';
 import '../widgets/custom_button.dart';
 import 'payment_status_screen.dart';
 
 class PaymentCheckoutScreen extends StatefulWidget {
-  const PaymentCheckoutScreen({super.key});
-
+  final Future<bool> Function(Uri)? paymentLauncher;
+  const PaymentCheckoutScreen({super.key, this.paymentLauncher});
   @override
   State<PaymentCheckoutScreen> createState() => _PaymentCheckoutScreenState();
 }
 
 class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
-  String _selectedMethod = 'VNPay'; // VNPay or Offline
-
+  String? _method;
+  String? _voucher;
+  String? _readyUrl;
+  String? _localError;
+  bool _working = false;
+  bool _mustCheck = false;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<VoucherProvider>(context, listen: false).fetchVouchers();
+      if (mounted) _load();
     });
   }
 
-  void _handlePay() async {
-    final chargingProvider = Provider.of<ChargingSessionProvider>(context, listen: false);
-    final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
-    final voucherProvider = Provider.of<VoucherProvider>(context, listen: false);
-
-    final session = chargingProvider.currentSession;
-    final sessionId = session?.id ?? 'sess-demo-01';
-
-    final subtotal = (session?.cost ?? 95000) / 1.10;
-    final originalTotal = session?.cost ?? 95000;
-    final discount = voucherProvider.selectedVoucher?.calculateDiscount(originalTotal) ?? 0.0;
-    final finalTotal = (originalTotal - discount).clamp(0.0, double.infinity);
-
-    if (_selectedMethod == 'VNPay') {
-      final vnpayUrl = await paymentProvider.generateVNPayUrl(sessionId);
-      if (vnpayUrl != null && vnpayUrl.isNotEmpty) {
-        final uri = Uri.tryParse(vnpayUrl);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      }
-    } else {
-      await paymentProvider.processOfflinePayment(
-        sessionId,
-        finalTotal,
-        'Trạm Sạc EV Hub - Landmark 81',
-        session?.totalEnergyConsumedKWh ?? 24.5,
-      );
-    }
-
+  Future<void> _load() async {
+    final session = context.read<ChargingSessionProvider>().currentSession;
+    if (session == null) return;
+    final payments = context.read<PaymentProvider>();
+    await Future.wait([
+      payments.fetchQuote(session.id),
+      payments.fetchMethods(),
+      context.read<VoucherProvider>().fetchVouchers(),
+    ]);
     if (!mounted) return;
+    setState(() {
+      if (!payments.methods.any((m) => m.id == _method && m.available)) {
+        _method = payments.methods.where((m) => m.available).firstOrNull?.id;
+      }
+    });
+  }
 
-    // Reset session and go to success screen
-    chargingProvider.resetSession();
+  void _status(String id) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => PaymentStatusScreen(sessionId: id)));
+  Future<void> _check() async {
+    final session = context.read<ChargingSessionProvider>().currentSession;
+    if (session == null) return;
+    final ok = await context.read<PaymentProvider>().fetchQuote(session.id);
+    if (mounted && ok) {
+      setState(() {
+        _mustCheck = false;
+        _localError = null;
+      });
+    }
+  }
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => PaymentStatusScreen(
-          amount: finalTotal,
-          paymentMethod: _selectedMethod == 'VNPay' ? 'Cổng thanh toán VNPay' : 'Thanh toán tại quầy (Tiền mặt)',
-          sessionId: sessionId,
-        ),
-      ),
-    );
+  Future<void> _apply() async {
+    final id = context.read<ChargingSessionProvider>().currentSession?.id;
+    final voucher = _voucher;
+    if (id == null || voucher == null || _working) return;
+    setState(() {
+      _working = true;
+      _localError = null;
+    });
+    final vouchers = context.read<VoucherProvider>();
+    final charging = context.read<ChargingSessionProvider>();
+    final payments = context.read<PaymentProvider>();
+    final accepted = await vouchers.applyVoucher(voucher, id);
+    if (!mounted) return;
+    if (accepted) {
+      await Future.wait([charging.refreshSession(), payments.fetchQuote(id)]);
+    }
+    if (mounted) {
+      setState(() {
+        _working = false;
+        _voucher = null;
+        if (!accepted) _localError = vouchers.errorMessage;
+      });
+    }
+  }
+
+  Future<void> _pay() async {
+    final session = context.read<ChargingSessionProvider>().currentSession;
+    final payments = context.read<PaymentProvider>();
+    final quote = payments.quote;
+    if (_working ||
+        session == null ||
+        quote == null ||
+        quote.sessionId != session.id) {
+      return;
+    }
+    if (quote.isPaid || quote.hasPendingPayment) {
+      _status(session.id);
+      return;
+    }
+    if (_mustCheck ||
+        quote.sessionStatus != 'Completed' ||
+        !payments.methods.any((m) => m.available && m.id == _method)) {
+      return;
+    }
+    setState(() {
+      _working = true;
+      _localError = null;
+      _readyUrl = null;
+    });
+    if (_method == 'VNPay') {
+      final url = await payments.generateVNPayUrl(session.id);
+      final error = payments.errorMessage;
+      await payments.fetchQuote(
+        session.id,
+      ); // Read-only reconciliation, never re-POST.
+      if (mounted) {
+        setState(() {
+          _readyUrl = url;
+          _working = false;
+          _mustCheck = url == null;
+          _localError = url == null
+              ? error ??
+                    'Chưa xác nhận tạo URL thanh toán. Hãy kiểm tra trạng thái.'
+              : null;
+        });
+      }
+    } else if (_method == 'Offline') {
+      final accepted = await payments.processOfflinePayment(session.id);
+      final error = payments.errorMessage;
+      await payments.fetchQuote(session.id);
+      if (!mounted) return;
+      setState(() {
+        _working = false;
+        _mustCheck = !accepted;
+        if (!accepted) _localError = error;
+      });
+      if (accepted) _status(session.id); // Pending screen, not a receipt.
+    } else {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<void> _open() async {
+    final url = _readyUrl;
+    final id = context.read<ChargingSessionProvider>().currentSession?.id;
+    if (url == null || id == null || _working) return;
+    setState(() => _working = true);
+    try {
+      final opened =
+          await (widget.paymentLauncher?.call(Uri.parse(url)) ??
+              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication));
+      if (!mounted) return;
+      setState(() {
+        _working = false;
+        if (!opened) {
+          _localError =
+              'Không mở được cổng thanh toán. Yêu cầu vẫn chờ xác nhận; kiểm tra trạng thái hoặc mở lại.';
+        }
+      });
+      if (opened) _status(id);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _working = false;
+          _localError =
+              'Không mở được cổng thanh toán. Chưa xác nhận đã thanh toán.';
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final chargingProvider = context.watch<ChargingSessionProvider>();
-    final voucherProvider = context.watch<VoucherProvider>();
-    final paymentProvider = context.watch<PaymentProvider>();
-
-    final session = chargingProvider.currentSession;
-    final energyDelivered = session?.totalEnergyConsumedKWh ?? 24.5;
-    final pricePerKWh = chargingProvider.pricePerKWh;
-    final subtotal = energyDelivered * pricePerKWh;
-    final vat = subtotal * (chargingProvider.vatRate / 100.0);
-    final rawTotal = subtotal + vat;
-
-    final selectedVoucher = voucherProvider.selectedVoucher;
-    final discount = selectedVoucher?.calculateDiscount(rawTotal) ?? 0.0;
-    final finalTotal = (rawTotal - discount).clamp(0.0, double.infinity);
-
+    final charging = context.watch<ChargingSessionProvider>();
+    final payments = context.watch<PaymentProvider>();
+    final vouchers = context.watch<VoucherProvider>();
+    final session = charging.currentSession;
+    final quote = payments.quote?.sessionId == session?.id
+        ? payments.quote
+        : null;
+    final busy =
+        _working ||
+        payments.isLoading ||
+        payments.checking ||
+        vouchers.isLoading;
+    final owned = vouchers.ownedVouchers.where((v) => v.isUsable).toList();
+    final applied = vouchers.ownedVouchers
+        .where((v) => v.sessionId == session?.id && v.status == 'Used')
+        .firstOrNull;
+    final selected = owned.any((v) => v.id == _voucher) ? _voucher : null;
+    final canCreate =
+        quote != null &&
+        quote.sessionStatus == 'Completed' &&
+        !quote.hasPendingPayment &&
+        !quote.isPaid &&
+        !_mustCheck;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thanh Toán Hóa Đơn'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Invoice
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      appBar: AppBar(title: const Text('Thanh Toán Hóa Đơn')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          if (session == null) ...[
+            const Text('Không có phiên sạc hợp lệ để thanh toán.'),
+            OutlinedButton(
+              onPressed: charging.isLoading
+                  ? null
+                  : () async {
+                      await charging.restoreSession();
+                      if (mounted) await _load();
+                    },
+              child: const Text('Tải phiên từ máy chủ'),
+            ),
+          ] else ...[
+            SelectableText('Mã phiên: ${session.id}'),
+            const SizedBox(height: 16),
+            if (payments.checking) const LinearProgressIndicator(),
+            if (payments.errorMessage != null)
+              ApiProblem(message: payments.errorMessage!, onRetry: _check),
+            if (quote != null)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                     children: [
                       Text(
-                        'HÓA ĐƠN SẠC XE ĐIỆN',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        'HÓA ĐƠN TỪ MÁY CHỦ',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text(
-                        '#EV982103',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      const SizedBox(height: 12),
+                      _row('Trạng thái phiên', quote.sessionStatus),
+                      _row(
+                        'Chi phí phiên sau ưu đãi',
+                        Formatters.formatCurrency(quote.beforeVatAmount),
+                      ),
+                      _row('Thuế VAT', '${quote.taxRate}%'),
+                      _row(
+                        'Tổng theo máy chủ',
+                        Formatters.formatCurrency(quote.amount),
                       ),
                     ],
                   ),
-                  const Divider(height: 24),
-
-                  _buildInvoiceRow('Thời gian sạc:', Formatters.formatDuration(session?.elapsedSeconds ?? 1840)),
-                  const SizedBox(height: 8),
-                  _buildInvoiceRow('Điện năng tiêu thụ:', Formatters.formatEnergy(energyDelivered)),
-                  const SizedBox(height: 8),
-                  _buildInvoiceRow('Đơn giá điện:', '${Formatters.formatCurrency(pricePerKWh)}/kWh'),
-                  const SizedBox(height: 8),
-                  _buildInvoiceRow('Tiền điện (Chưa thuế):', Formatters.formatCurrency(subtotal)),
-                  const SizedBox(height: 8),
-                  _buildInvoiceRow('Thuế VAT (10%):', Formatters.formatCurrency(vat)),
-
-                  if (selectedVoucher != null) ...[
-                    const SizedBox(height: 8),
-                    _buildInvoiceRow(
-                      'Ưu đãi voucher (${selectedVoucher.code}):',
-                      '-${Formatters.formatCurrency(discount)}',
-                      textColor: AppColors.primary,
-                    ),
-                  ],
-
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'TỔNG THANH TOÁN:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        Formatters.formatCurrency(finalTotal),
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Voucher Picker
-            const Text(
-              'Mã Giảm Giá / Voucher',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  hint: const Text('Chọn voucher áp dụng'),
-                  value: selectedVoucher?.id,
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('Không sử dụng voucher'),
-                    ),
-                    ...voucherProvider.vouchers.map((v) {
-                      return DropdownMenuItem<String>(
-                        value: v.id,
-                        child: Text('${v.code} - ${v.description}'),
-                      );
-                    }),
-                  ],
-                  onChanged: (voucherId) {
-                    if (voucherId == null) {
-                      voucherProvider.selectVoucher(null);
-                    } else {
-                      final v = voucherProvider.vouchers.firstWhere((item) => item.id == voucherId);
-                      voucherProvider.selectVoucher(v);
-                    }
-                  },
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Payment Methods
-            const Text(
-              'Phương Thức Thanh Toán',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
             const SizedBox(height: 12),
-
-            _buildPaymentMethodOption(
-              context,
-              id: 'VNPay',
-              title: 'Cổng thanh toán VNPAY-QR',
-              subtitle: 'Thanh toán qua App Ngân hàng hoặc Ví điện tử VNPAY',
-              icon: Icons.qr_code_2_rounded,
-              color: const Color(0xFF005BAA),
-            ),
-            const SizedBox(height: 12),
-
-            _buildPaymentMethodOption(
-              context,
-              id: 'Offline',
-              title: 'Thanh toán tại quầy với nhân viên',
-              subtitle: 'Thanh toán tiền mặt hoặc quẹt thẻ POS tại trạm',
-              icon: Icons.storefront_outlined,
-              color: AppColors.accent,
-            ),
-            const SizedBox(height: 32),
-
-            // Submit Payment Button
-            CustomButton(
-              text: 'Xác Nhận Thanh Toán (${Formatters.formatCurrency(finalTotal)})',
-              isLoading: paymentProvider.isLoading,
-              onPressed: _handlePay,
-            ),
+            if (vouchers.isLoading) const LinearProgressIndicator(),
+            if (vouchers.errorMessage != null)
+              ApiProblem(
+                message: vouchers.errorMessage!,
+                onRetry: vouchers.fetchVouchers,
+              ),
+            if (applied != null)
+              Text('Máy chủ đã áp dụng: ${applied.voucherName}'),
+            if (applied == null &&
+                quote?.payment == null &&
+                canCreate &&
+                owned.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                initialValue: selected,
+                isExpanded: true,
+                hint: const Text('Chọn voucher đã đổi'),
+                items: owned
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v.id,
+                        child: Text(v.voucherName),
+                      ),
+                    )
+                    .toList(),
+                onChanged: busy
+                    ? null
+                    : (value) => setState(() => _voucher = value),
+              ),
+              const SizedBox(height: 10),
+              CustomButton(
+                text: 'Áp dụng voucher trên máy chủ',
+                onPressed: selected == null || busy ? null : _apply,
+              ),
+            ],
             const SizedBox(height: 20),
+            Text(
+              'Phương thức thanh toán',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (payments.methodsLoading) const LinearProgressIndicator(),
+            if (payments.methodsError != null)
+              ApiProblem(
+                message: payments.methodsError!,
+                onRetry: payments.fetchMethods,
+              ),
+            if (!payments.methodsLoading &&
+                payments.methods.isEmpty &&
+                payments.methodsError == null)
+              const Text('Máy chủ chưa cung cấp phương thức thanh toán.'),
+            for (final method in payments.methods)
+              RadioListTile<String>(
+                value: method.id,
+                groupValue: _method,
+                title: Text(method.name),
+                subtitle: method.available ? null : const Text('Chưa khả dụng'),
+                onChanged: busy || !method.available || !canCreate
+                    ? null
+                    : (value) => setState(() => _method = value),
+              ),
+            const SizedBox(height: 20),
+            if (_localError != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  _localError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            if (_readyUrl != null) ...[
+              CustomButton(
+                text: 'Mở VNPAY Sandbox',
+                onPressed: busy ? null : _open,
+              ),
+              const SizedBox(height: 12),
+            ],
+            CustomButton(
+              text: quote?.isPaid == true || quote?.hasPendingPayment == true
+                  ? 'Xem trạng thái thanh toán'
+                  : 'Tạo yêu cầu thanh toán',
+              isLoading: _working || payments.isLoading,
+              onPressed:
+                  busy ||
+                      quote == null ||
+                      (!canCreate && !quote.isPaid && !quote.hasPendingPayment)
+                  ? null
+                  : _pay,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: busy ? null : _check,
+              child: const Text('Kiểm tra trạng thái / hóa đơn'),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Mở VNPay hoặc tạo yêu cầu tại quầy chưa có nghĩa đã thanh toán. Chỉ xác nhận từ máy chủ mới hoàn tất hóa đơn.',
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildInvoiceRow(String label, String value, {Color? textColor}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _row(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
       children: [
-        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
+        Expanded(child: Text(label)),
+        const SizedBox(width: 12),
+        Flexible(child: Text(value, textAlign: TextAlign.end)),
       ],
-    );
-  }
-
-  Widget _buildPaymentMethodOption(
-    BuildContext context, {
-    required String id,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    final isSelected = _selectedMethod == id;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedMethod = id;
-        });
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.withOpacity(0.25),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                ],
-              ),
-            ),
-            Radio<String>(
-              value: id,
-              groupValue: _selectedMethod,
-              activeColor: AppColors.primary,
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedMethod = val);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }

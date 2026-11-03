@@ -1,3 +1,5 @@
+import '../core/network/api_contract.dart';
+
 class BookingModel {
   final String id;
   final String? checkInCode;
@@ -22,6 +24,7 @@ class BookingModel {
   final String? driverName;
   final String? driverPhone;
   final double estimatedCost;
+  final bool hasEstimatedCost;
 
   BookingModel({
     required this.id,
@@ -47,41 +50,48 @@ class BookingModel {
     this.driverName,
     this.driverPhone,
     this.estimatedCost = 0,
+    this.hasEstimatedCost = false,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
-      id: json['id']?.toString() ?? '',
+      id: contractId(json['id']),
       checkInCode: json['checkInCode']?.toString(),
-      startTime: json['startTime'] != null
-          ? DateTime.tryParse(json['startTime'].toString()) ?? DateTime.now()
-          : DateTime.now(),
-      endTime: json['endTime'] != null
-          ? DateTime.tryParse(json['endTime'].toString()) ?? DateTime.now().add(const Duration(hours: 1))
-          : DateTime.now().add(const Duration(hours: 1)),
+      startTime:
+          contractDate(json['startTime']) ??
+          (throw const FormatException('Missing booking start')),
+      endTime:
+          contractDate(json['endTime']) ??
+          (throw const FormatException('Missing booking end')),
       actualStartTime: json['actualStartTime'] != null
           ? DateTime.tryParse(json['actualStartTime'].toString())
           : null,
       actualEndTime: json['actualEndTime'] != null
           ? DateTime.tryParse(json['actualEndTime'].toString())
           : null,
-      status: json['status']?.toString() ?? 'Scheduled',
+      status: json['status'] is String
+          ? json['status']
+          : (throw const FormatException('Missing booking status')),
       currentBattery: (json['currentBattery'] as num?)?.toDouble(),
       targetBattery: (json['targetBattery'] as num?)?.toDouble(),
       estimatedEnergyKWh: (json['estimatedEnergyKWh'] as num?)?.toDouble(),
       actualEnergyKWh: (json['actualEnergyKWh'] as num?)?.toDouble(),
-      stationId: json['stationId']?.toString() ?? '',
+      stationId: contractId(json['stationId']),
       stationName: json['stationName']?.toString() ?? 'Trạm sạc',
       location: json['location']?.toString() ?? '',
       connectorId: json['connectorId']?.toString(),
       connectorName: json['connectorName']?.toString(),
       chargingPostId: json['chargingPostId']?.toString(),
       chargingPostName: json['chargingPostName']?.toString(),
-      vehicleId: json['vehicleId']?.toString(),
-      vehicleName: json['vehicleName']?.toString() ?? 'VinFast VF8',
+      vehicleId:
+          json['vehicleModelId']?.toString() ?? json['vehicleId']?.toString(),
+      vehicleName: json['vehicleName']?.toString(),
       driverName: json['driverName']?.toString(),
       driverPhone: json['driverPhone']?.toString(),
-      estimatedCost: (json['estimatedCost'] as num?)?.toDouble() ?? 75000,
+      estimatedCost: json['estimatedCost'] == null
+          ? 0
+          : contractNumber(json['estimatedCost']),
+      hasEstimatedCost: json['estimatedCost'] != null,
     );
   }
 
@@ -93,8 +103,20 @@ class BookingModel {
     };
   }
 
-  bool get isScheduled => status.toLowerCase() == 'scheduled';
+  bool get isScheduled => [
+    'scheduled',
+    'reserved',
+    'checkedin',
+    'waiting',
+  ].contains(status.toLowerCase());
   bool get isInProgress => status.toLowerCase() == 'inprogress';
   bool get isCompleted => status.toLowerCase() == 'completed';
-  bool get isCancelled => status.toLowerCase() == 'cancelled';
+  bool get isCancelled => [
+    'cancelled',
+    'autocancelled',
+    'cancelledinvalid',
+    'noshow',
+    'compensatedcancelled',
+    'rejected',
+  ].contains(status.toLowerCase());
 }

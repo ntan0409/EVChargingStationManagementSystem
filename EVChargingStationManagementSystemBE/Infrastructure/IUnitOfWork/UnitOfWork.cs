@@ -31,20 +31,11 @@ namespace Infrastructure.IUnitOfWork
         public UnitOfWork()
             => context ??= new EVCSMSContext();
 
+        public UnitOfWork(EVCSMSContext context)
+            => this.context = context;
+
         public async Task<int> SaveChangesAsync()
         {
-            foreach (var entry in context.ChangeTracker.Entries())
-            {
-                Console.WriteLine($"{entry.Entity.GetType().Name} - {entry.State}");
-                foreach (var prop in entry.Properties)
-                {
-                    if (prop.IsModified)
-                    {
-                        Console.WriteLine($"   {prop.Metadata.Name}: {prop.OriginalValue} -> {prop.CurrentValue}");
-                    }
-                }
-            }
-
             return await context.SaveChangesAsync();
         }
 

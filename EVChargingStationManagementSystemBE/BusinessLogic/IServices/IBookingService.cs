@@ -9,9 +9,9 @@ namespace BusinessLogic.IServices
     {
         Task<IServiceResult> CreateBooking(BookingCreatedDto dto, Guid userId);
         Task<IServiceResult> GetBookingList(Guid? userId = null);
-        Task<IServiceResult> GetBookingDetail(Guid bookingId);
-        Task<IServiceResult> CheckInBooking(BookingCheckInDto request);
-        Task<IServiceResult> CompleteBookingAsync(Guid bookingId);
+        Task<IServiceResult> GetBookingDetail(Guid bookingId, Guid? accountId = null);
+        Task<IServiceResult> CheckInBooking(BookingCheckInDto request, Guid accountId);
+        Task<IServiceResult> CompleteBookingAsync(Guid bookingId, Guid? accountId = null);
         Task<IServiceResult> CancelBooking(Guid bookingId, Guid userId);
         Task AutoCancelExpiredBookings();
         //Task AutoReassignBookingsForErrorStations();

@@ -18,7 +18,8 @@ import '../station/station_detail_screen.dart';
 import '../widgets/status_badge.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onShowMap;
+  const HomeScreen({super.key, this.onShowMap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -29,9 +30,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Provider.of<StationProvider>(context, listen: false).fetchStations();
       Provider.of<VehicleProvider>(context, listen: false).fetchVehicles();
-      Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
+      Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      ).fetchNotifications();
     });
   }
 
@@ -55,8 +60,12 @@ class _HomeScreenState extends State<HomeScreen> {
             await notifProvider.fetchNotifications();
           },
           child: SingleChildScrollView(
+            key: const PageStorageKey('home-scroll'),
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -64,51 +73,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: AppColors.primary.withOpacity(0.15),
-                          child: Text(
-                            user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: AppColors.primary.withOpacity(
+                              0.15,
+                            ),
+                            child: Text(
+                              user != null && user.name.isNotEmpty
+                                  ? user.name.characters.first.toUpperCase()
+                                  : 'U',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Xin chào,',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Xin chào,',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                Text(
+                                  user?.name ?? 'Tài xế EV',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              user?.name ?? 'Tài xế EV',
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                     IconButton(
                       icon: Badge(
                         isLabelVisible: notifProvider.unreadCount > 0,
                         label: Text('${notifProvider.unreadCount}'),
-                        child: const Icon(Icons.notifications_outlined, size: 26),
+                        child: const Icon(
+                          Icons.notifications_outlined,
+                          size: 26,
+                        ),
                       ),
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationScreen(),
+                          ),
                         );
                       },
                     ),
@@ -139,14 +163,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Trạm Sạc Gần Bạn',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const Expanded(
+                      child: Text(
+                        'Trạm Sạc Gần Bạn',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     TextButton(
-                      onPressed: () {
-                        // Switch to map tab
-                      },
+                      onPressed: widget.onShowMap,
                       child: const Text('Xem tất cả'),
                     ),
                   ],
@@ -166,7 +193,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildLiveChargingBanner(BuildContext context, ChargingSessionProvider provider) {
+  Widget _buildLiveChargingBanner(
+    BuildContext context,
+    ChargingSessionProvider provider,
+  ) {
     final session = provider.currentSession;
     if (session == null) return const SizedBox.shrink();
 
@@ -192,36 +222,47 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.2),
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.bolt,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
                     ),
-                    child: const Icon(Icons.bolt, color: AppColors.primary, size: 24),
-                  ),
-                  const SizedBox(width: 10),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ĐANG SẠC PIN',
-                        style: TextStyle(
-                          color: AppColors.primaryLight,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          letterSpacing: 1.0,
-                        ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ĐANG SẠC PIN',
+                            style: TextStyle(
+                              color: AppColors.primaryLight,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Text(
+                            'Phiên sạc đang diễn ra',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Phiên sạc đang diễn ra',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
               const StatusBadge(status: 'Charging'),
             ],
@@ -230,10 +271,30 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetricItem('Mức Pin', '${session.currentBatteryPercent.toStringAsFixed(0)}%'),
-              _buildMetricItem('Công suất', '${provider.currentPowerKW.toStringAsFixed(0)} kW'),
-              _buildMetricItem('Đã nạp', Formatters.formatEnergy(session.totalEnergyConsumedKWh)),
-              _buildMetricItem('Tạm tính', Formatters.formatCurrency(session.cost)),
+              _buildMetricItem(
+                'Mức Pin',
+                session.hasMeasuredBatteryPercent
+                    ? '${session.currentBatteryPercent.toStringAsFixed(0)}%'
+                    : 'Chưa có',
+              ),
+              _buildMetricItem(
+                'Định mức',
+                session.powerRateKW > 0
+                    ? '${session.powerRateKW} kW'
+                    : 'Chưa có',
+              ),
+              _buildMetricItem(
+                'Đã nạp',
+                session.hasEnergy
+                    ? Formatters.formatEnergy(session.totalEnergyConsumedKWh)
+                    : 'Chưa có',
+              ),
+              _buildMetricItem(
+                'Chi phí phiên',
+                session.hasCost
+                    ? Formatters.formatCurrency(session.cost)
+                    : 'Chưa có',
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -243,7 +304,9 @@ class _HomeScreenState extends State<HomeScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               icon: const Icon(Icons.speed, size: 18),
               label: const Text('Mở Bảng Điều Khiển Sạc (Live Telemetry)'),
@@ -260,25 +323,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMetricItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 11,
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 11,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -302,15 +368,28 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.directions_car_filled, color: AppColors.primary, size: 24),
-                  const SizedBox(width: 8),
-                  Text(
-                    selectedCar?.modelName ?? 'VinFast VF8 Plus',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.directions_car_filled,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedCar?.modelName ?? 'Chưa có xe trong hồ sơ',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               GestureDetector(
                 onTap: () {
@@ -333,9 +412,25 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildCarStatItem(Icons.battery_charging_full, 'Dung lượng pin', '${selectedCar?.batteryCapacityKWh ?? 87} kWh'),
-              _buildCarStatItem(Icons.flash_on, 'Chuẩn sạc', 'CCS2 / Fast DC'),
-              _buildCarStatItem(Icons.pin, 'Biển số', selectedCar?.licensePlate ?? '51K-987.65'),
+              _buildCarStatItem(
+                Icons.battery_charging_full,
+                'Dung lượng pin',
+                selectedCar != null && selectedCar.batteryCapacityKWh > 0
+                    ? '${selectedCar.batteryCapacityKWh} kWh'
+                    : 'Chưa cấu hình',
+              ),
+              _buildCarStatItem(
+                Icons.flash_on,
+                'Chuẩn sạc',
+                'Chưa có thông tin',
+              ),
+              _buildCarStatItem(
+                Icons.pin,
+                'Biển số',
+                selectedCar?.licensePlate?.isNotEmpty == true
+                    ? selectedCar!.licensePlate
+                    : 'Chưa có thông tin',
+              ),
             ],
           ),
         ],
@@ -344,19 +439,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCarStatItem(IconData icon, String title, String value) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.primary, size: 22),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          title,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-        ),
-      ],
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
     );
   }
 
@@ -367,9 +466,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'icon': Icons.qr_code_scanner_rounded,
         'color': AppColors.primary,
         'onTap': () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const QrScannerScreen()));
         },
       },
       {
@@ -387,9 +486,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'icon': Icons.card_giftcard_rounded,
         'color': AppColors.accent,
         'onTap': () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const VoucherListScreen()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const VoucherListScreen()));
         },
       },
       {
@@ -397,9 +496,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'icon': Icons.report_problem_outlined,
         'color': AppColors.statusFaulted,
         'onTap': () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CreateReportScreen()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CreateReportScreen()));
         },
       },
     ];
@@ -409,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        childAspectRatio: 0.85,
+        mainAxisExtent: 112,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -429,13 +528,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: (item['color'] as Color).withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 26),
+                child: Icon(
+                  item['icon'] as IconData,
+                  color: item['color'] as Color,
+                  size: 26,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 item['title'] as String,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
                 maxLines: 2,
               ),
             ],
@@ -445,100 +551,157 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNearestStationsList(BuildContext context, StationProvider provider) {
+  Widget _buildNearestStationsList(
+    BuildContext context,
+    StationProvider provider,
+  ) {
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     final stations = provider.stations;
     if (stations.isEmpty) {
       return const Center(child: Text('Không tìm thấy trạm sạc nào'));
     }
-
     return Column(
-      children: stations.take(3).map((station) {
-        return Card(
-          elevation: 1.5,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: InkWell(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => StationDetailScreen(stationId: station.id),
+      children: stations
+          .take(3)
+          .map(
+            (station) => Card(
+              elevation: 1.5,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: InkWell(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => StationDetailScreen(stationId: station.id),
+                  ),
                 ),
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.ev_station, color: AppColors.primary, size: 28),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          station.stationName,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          station.location,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text(
-                              Formatters.formatCurrency(station.pricePerKWh) + '/kWh',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryDark,
-                              ),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final details = Row(
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '${station.distanceKm} km',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            child: const Icon(
+                              Icons.ev_station,
+                              color: AppColors.primary,
+                              size: 28,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  station.stationName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  station.location,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 8,
+                                  children: [
+                                    Text(
+                                      station.hasPrice
+                                          ? Formatters.formatCurrency(
+                                                  station.pricePerKWh,
+                                                ) +
+                                                '/kWh'
+                                          : 'Chưa có đơn giá',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                    if (station.hasDistance)
+                                      Text(
+                                        '${station.distanceKm} km',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                      final status = Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          StatusBadge(
+                            status: station.totalAvailableConnectors > 0
+                                ? 'Available'
+                                : 'Faulted',
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${station.totalAvailableConnectors}/${station.totalAllConnectors} cổng trống',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      );
+                      final compact =
+                          constraints.maxWidth < 300 ||
+                          MediaQuery.textScalerOf(context).scale(14) > 16;
+                      return compact
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                details,
+                                const SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: status,
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(child: details),
+                                const SizedBox(width: 8),
+                                status,
+                              ],
+                            );
+                    },
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      StatusBadge(status: station.totalAvailableConnectors > 0 ? 'Available' : 'Faulted'),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${station.totalAvailableConnectors}/${station.totalAllConnectors} cổng trống',
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          )
+          .toList(),
     );
   }
 
@@ -580,7 +743,10 @@ class _HomeScreenState extends State<HomeScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: AppColors.primaryDark,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              minimumSize: const Size(0, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () {
               Navigator.of(context).push(

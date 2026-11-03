@@ -20,7 +20,7 @@ namespace BusinessLogic.IServices
         // ===== USER FLOW =====    
         Task<IServiceResult> GetAvailableVouchers();
         Task<IServiceResult> RedeemVoucher(Guid evDriverId, Guid voucherId);
-        Task<IServiceResult> UseVoucher(Guid userVoucherId, Guid sessionId);
+        Task<IServiceResult> UseVoucher(Guid userVoucherId, Guid sessionId, Guid? accountId = null);
 
         Task<IServiceResult> GetMyVouchers(Guid evDriverId);
 

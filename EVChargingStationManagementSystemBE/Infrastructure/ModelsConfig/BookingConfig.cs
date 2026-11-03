@@ -9,6 +9,8 @@ namespace Infrastructure.ModelsConfig
         public void Configure(EntityTypeBuilder<Booking> builder)
         {
             builder.ToTable("Booking");
+            builder.HasOne(b => b.VehicleModelNavigation).WithMany()
+                .HasForeignKey(b => b.VehicleModelId).OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(b => b.ChargingStationNavigation)
                    .WithMany(cs => cs.Bookings)

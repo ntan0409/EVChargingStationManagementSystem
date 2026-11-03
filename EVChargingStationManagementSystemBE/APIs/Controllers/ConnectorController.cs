@@ -100,6 +100,7 @@ namespace APIs.Controllers
         //}
 
         [HttpPatch("connector-toggle")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> UpdateConnectorCount(bool toggle, Guid connectorId)
         {
             var result = await _service.UpdateConnectorCount(toggle, connectorId);

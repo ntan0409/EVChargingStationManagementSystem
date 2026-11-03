@@ -13,6 +13,15 @@ using BusinessLogic.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("Configure Jwt:Key through a secret provider (at least 32 bytes).");
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (!builder.Environment.IsDevelopment() && (allowedOrigins.Length == 0 || allowedOrigins.Any(origin =>
+    !Uri.TryCreate(origin, UriKind.Absolute, out var uri) || uri.Scheme != "https" ||
+    uri.IsLoopback || uri.AbsolutePath != "/" || uri.Query.Length != 0 || uri.Fragment.Length != 0)))
+    throw new InvalidOperationException("Configure explicit HTTPS production Cors:AllowedOrigins.");
+
 
 // 🔗 Kết nối database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -34,6 +43,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISCStaffService, SCStaffService>();
 builder.Services.AddScoped<IEVDriverService, EVDriverService>();
+builder.Services.AddScoped<DriverJourneyService>();
 builder.Services.AddScoped<IVehicleModelService, VehicleModelService>();
 builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 builder.Services.AddScoped<IChargingPostService, ChargingPostService>();
@@ -67,7 +77,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 })
 ;
@@ -119,16 +129,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (builder.Environment.IsDevelopment()) policy.AllowAnyOrigin();
+        else policy.WithOrigins(allowedOrigins);
+        policy.AllowAnyMethod().AllowAnyHeader();
     });
 });
 
 var app = builder.Build();
 
 // 🚀 Middleware pipeline
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();

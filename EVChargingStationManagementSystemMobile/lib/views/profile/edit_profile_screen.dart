@@ -25,7 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
     _nameController = TextEditingController(text: user?.name ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
-    _addressController = TextEditingController(text: user?.address ?? 'TP. Hồ Chí Minh');
+    _addressController = TextEditingController(text: user?.address ?? '');
   }
 
   @override
@@ -50,7 +50,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cập nhật thông tin thành công!'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Cập nhật thông tin thành công!'),
+          backgroundColor: AppColors.success,
+        ),
       );
       Navigator.of(context).pop();
     }
@@ -62,9 +65,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = authProvider.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chỉnh Sửa Thông Tin'),
-      ),
+      appBar: AppBar(title: const Text('Chỉnh Sửa Thông Tin')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Form(
@@ -80,7 +81,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       backgroundColor: AppColors.primary.withOpacity(0.15),
                       child: Text(
                         user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        style: const TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     Positioned(
@@ -92,7 +97,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -103,8 +112,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               CustomTextField(
                 label: 'Họ và tên',
                 controller: _nameController,
-                prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
-                validator: (val) => Validators.requiredField(val, message: 'Vui lòng nhập họ tên'),
+                prefixIcon: const Icon(
+                  Icons.person_outline,
+                  color: AppColors.primary,
+                ),
+                validator: (val) => Validators.requiredField(
+                  val,
+                  message: 'Vui lòng nhập họ tên',
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -112,7 +127,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 label: 'Số điện thoại',
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.primary),
+                prefixIcon: const Icon(
+                  Icons.phone_outlined,
+                  color: AppColors.primary,
+                ),
                 validator: Validators.phone,
               ),
               const SizedBox(height: 16),
@@ -120,7 +138,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               CustomTextField(
                 label: 'Địa chỉ / Khu vực',
                 controller: _addressController,
-                prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.primary),
+                prefixIcon: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -128,7 +149,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 label: 'Email (Không thể thay đổi)',
                 initialValue: user?.email ?? '',
                 readOnly: true,
-                prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
+                prefixIcon: const Icon(
+                  Icons.email_outlined,
+                  color: Colors.grey,
+                ),
               ),
               const SizedBox(height: 32),
 

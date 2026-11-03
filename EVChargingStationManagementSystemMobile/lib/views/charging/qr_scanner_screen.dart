@@ -1,221 +1,151 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
-import '../../models/connector_model.dart';
-import '../../models/station_model.dart';
-import '../../providers/station_provider.dart';
+import '../../providers/charging_session_provider.dart';
+import '../../services/station_service.dart';
+import 'live_charging_screen.dart';
 import 'start_charging_screen.dart';
+import '../widgets/driver_journey_guard.dart';
 
-class QrScannerScreen extends StatefulWidget {
+class QrScannerScreen extends StatelessWidget {
   const QrScannerScreen({super.key});
-
   @override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
+  Widget build(BuildContext context) => DriverJourneyGuard(
+    step: DriverJourneyStep.charging,
+    builder: (_, state) => const _QrScannerContent(),
+  );
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController _scannerController = MobileScannerController();
-  final TextEditingController _manualIdController = TextEditingController();
-  bool _isTorchOn = false;
-  bool _isProcessing = false;
+class _QrScannerContent extends StatefulWidget {
+  const _QrScannerContent();
+  @override
+  State<_QrScannerContent> createState() => _QrScannerScreenState();
+}
 
+class _QrScannerScreenState extends State<_QrScannerContent> {
+  final _scanner = MobileScannerController();
+  bool _processing = false;
+  String? _failedCode;
+  String? _error;
   @override
   void dispose() {
-    _scannerController.dispose();
-    _manualIdController.dispose();
+    _scanner.dispose();
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
-    if (_isProcessing) return;
-    final barcodes = capture.barcodes;
-    if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-      final code = barcodes.first.rawValue!;
-      _handleScannedCode(code);
+  Future<void> _resolve(String code) async {
+    if (_processing) return;
+    setState(() {
+      _processing = true;
+      _error = null;
+    });
+    final response = await StationService().resolveConnector(code.trim());
+    if (!mounted) return;
+    if (!response.success || response.data == null) {
+      setState(() {
+        _processing = false;
+        _failedCode = code;
+        _error = response.message;
+      });
+      return;
     }
-  }
-
-  void _handleScannedCode(String code) {
-    setState(() => _isProcessing = true);
-
-    final stationProvider = Provider.of<StationProvider>(context, listen: false);
-    final stations = stationProvider.stations;
-
-    // Resolve connector and station
-    StationModel targetStation = stations.isNotEmpty ? stations.first : StationModel(
-      id: 'st-001',
-      stationName: 'Trạm Sạc EV Hub - Landmark 81',
-      location: '720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP.HCM',
-      province: 'Hồ Chí Minh',
-      latitude: 10.7951,
-      longitude: 106.7218,
-    );
-
-    ConnectorModel targetConnector = ConnectorModel(
-      id: code.isNotEmpty ? code : 'conn-01',
-      connectorName: 'Cổng Sạc DC 120kW #1',
-      type: 'CCS2',
-      maxPower: '120 kW',
-      status: 'Available',
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã nhận diện mã trụ sạc: $code'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => StartChargingScreen(
-          connector: targetConnector,
-          station: targetStation,
+          connector: response.data!.connector,
+          station: response.data!.station,
         ),
       ),
     );
   }
 
-  void _showManualEntryDialog() {
-    showDialog(
+  Future<void> _manual() async {
+    var input = '';
+    final code = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Nhập Mã Trụ / Cổng Sạc'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Nhập mã định danh được in trên thân trụ sạc (VD: CONN-01, POST-120KW):',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _manualIdController,
-              decoration: const InputDecoration(
-                hintText: 'Nhập mã trụ sạc...',
-                prefixIcon: Icon(Icons.qr_code, color: AppColors.primary),
-              ),
-            ),
-          ],
+        title: const Text('Nhập mã GUID cổng sạc'),
+        content: TextField(
+          onChanged: (value) => input = value,
+          decoration: const InputDecoration(labelText: 'Mã cổng từ máy chủ'),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            onPressed: () {
-              final text = _manualIdController.text.trim();
-              Navigator.of(ctx).pop();
-              _handleScannedCode(text.isNotEmpty ? text : 'CONN-01');
-            },
-            child: const Text('Xác nhận'),
+            style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.pop(ctx, input),
+            child: const Text('Tra cứu'),
           ),
         ],
       ),
     );
+    if (code != null && mounted) await _resolve(code);
+  }
+
+  Future<void> _recover() async {
+    final provider = context.read<ChargingSessionProvider>();
+    final found = await provider.restoreSession();
+    if (!mounted) return;
+    if (found && provider.currentSession != null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LiveChargingScreen()),
+      );
+    } else {
+      setState(
+        () => _error =
+            provider.errorMessage ?? 'Máy chủ không có phiên chưa thanh toán.',
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Quét Mã QR Sạc Pin', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off, color: Colors.white),
-            onPressed: () {
-              setState(() {
-                _isTorchOn = !_isTorchOn;
-              });
-              _scannerController.toggleTorch();
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Quét Mã Cổng Sạc')),
+    body: Column(
+      children: [
+        Expanded(
+          child: MobileScanner(
+            controller: _scanner,
+            onDetect: (capture) {
+              if (_processing) return;
+              final code = capture.barcodes.firstOrNull?.rawValue;
+              if (code != null && code != _failedCode) _resolve(code);
             },
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Camera Scanner
-          MobileScanner(
-            controller: _scannerController,
-            onDetect: _onDetect,
-          ),
-
-          // QR Target Frame Overlay
-          Center(
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 3),
-                borderRadius: BorderRadius.circular(24),
+        ),
+        if (_processing) const LinearProgressIndicator(),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Text(
+                'Quét mã GUID thật của cổng. Cổng và trạm được tra cứu lại từ máy chủ.',
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    right: 10,
-                    child: Container(
-                      height: 2,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.8),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              if (_error != null)
+                Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              if (_failedCode != null && !_processing)
+                TextButton(
+                  onPressed: () => _resolve(_failedCode!),
+                  child: const Text('Tra cứu lại cổng'),
+                ),
+              OutlinedButton(
+                onPressed: _processing ? null : _manual,
+                child: const Text('Nhập mã cổng sạc'),
               ),
-            ),
+              TextButton(
+                onPressed: _processing ? null : _recover,
+                child: const Text('Mở lại phiên / hóa đơn hiện tại'),
+              ),
+            ],
           ),
-
-          // Bottom instruction & Manual entry button
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 40,
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.65),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Hướng camera vào mã QR được dán tại đầu cổng sạc hoặc thân trụ sạc',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black87,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  icon: const Icon(Icons.keyboard_outlined, size: 22),
-                  label: const Text('Nhập mã thủ công / Chọn cổng sạc'),
-                  onPressed: _showManualEntryDialog,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }

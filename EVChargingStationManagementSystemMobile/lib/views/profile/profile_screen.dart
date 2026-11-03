@@ -20,14 +20,19 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Đăng xuất tài khoản?'),
-        content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng EV Charging không?'),
+        content: const Text(
+          'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng EV Charging không?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              minimumSize: const Size(0, 50),
+            ),
             onPressed: () async {
               Navigator.of(ctx).pop();
               await authProvider.logout();
@@ -67,6 +72,7 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
+        key: const PageStorageKey('profile-scroll'),
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
         child: Column(
           children: [
@@ -90,7 +96,9 @@ class ProfileScreen extends StatelessWidget {
                     radius: 40,
                     backgroundColor: AppColors.primary.withOpacity(0.15),
                     child: Text(
-                      user?.name.substring(0, 1).toUpperCase() ?? 'U',
+                      user != null && user.name.isNotEmpty
+                          ? user.name.characters.first.toUpperCase()
+                          : 'U',
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -101,16 +109,24 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     user?.name ?? 'Tài xế EV',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     user?.email ?? 'driver@evcharging.com',
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -118,14 +134,20 @@ class ProfileScreen extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.workspace_premium_rounded, color: AppColors.primaryDark, size: 18),
+                        const Icon(
+                          Icons.workspace_premium_rounded,
+                          color: AppColors.primaryDark,
+                          size: 18,
+                        ),
                         const SizedBox(width: 6),
-                        Text(
-                          user?.rankingName ?? 'Thành viên Vàng (Gold)',
-                          style: const TextStyle(
-                            color: AppColors.primaryDark,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            user?.rankingName ?? 'Chưa có hạng thành viên',
+                            style: const TextStyle(
+                              color: AppColors.primaryDark,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -146,9 +168,17 @@ class ProfileScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatColumn('Tổng sạc', '245 kWh', Icons.bolt),
-                  _buildStatColumn('Giảm khí thải', '180 kg CO₂', Icons.eco),
-                  _buildStatColumn('Điểm thưởng', '${user?.score ?? 150} pts', Icons.stars),
+                  _buildStatColumn('Tổng sạc', 'Chưa có dữ liệu', Icons.bolt),
+                  _buildStatColumn(
+                    'Giảm khí thải',
+                    'Chưa có dữ liệu',
+                    Icons.eco,
+                  ),
+                  _buildStatColumn(
+                    'Điểm thưởng',
+                    '${user?.score ?? 0} pts',
+                    Icons.stars,
+                  ),
                 ],
               ),
             ),
@@ -164,7 +194,9 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Nhà để xe của tôi (Garage)',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MyVehiclesScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const MyVehiclesScreen(),
+                      ),
                     );
                   },
                 ),
@@ -173,7 +205,9 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Lịch sử giao dịch & Hóa đơn',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const TransactionHistoryScreen(),
+                      ),
                     );
                   },
                 ),
@@ -182,7 +216,9 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Kho Voucher & Điểm thưởng',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const VoucherListScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const VoucherListScreen(),
+                      ),
                     );
                   },
                 ),
@@ -191,7 +227,9 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Theo dõi báo cáo sự cố',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ReportHistoryScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ReportHistoryScreen(),
+                      ),
                     );
                   },
                 ),
@@ -203,28 +241,22 @@ class ProfileScreen extends StatelessWidget {
               context,
               title: 'Cài đặt hệ thống & Bảo mật',
               items: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            themeProvider.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                            color: AppColors.primary,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 14),
-                          const Text('Chế độ giao diện tối (Dark Mode)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                      Switch(
-                        value: themeProvider.isDarkMode,
-                        activeColor: AppColors.primary,
-                        onChanged: (val) => themeProvider.toggleTheme(),
-                      ),
-                    ],
+                ListTile(
+                  leading: Icon(
+                    themeProvider.isDarkMode
+                        ? Icons.dark_mode_outlined
+                        : Icons.light_mode_outlined,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                  title: const Text(
+                    'Chế độ giao diện tối (Dark Mode)',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  trailing: Switch(
+                    value: themeProvider.isDarkMode,
+                    activeColor: AppColors.primary,
+                    onChanged: (val) => themeProvider.toggleTheme(),
                   ),
                 ),
                 _buildMenuItem(
@@ -233,7 +265,9 @@ class ProfileScreen extends StatelessWidget {
                   subtitle: 'Tùy chỉnh kết nối Backend (Local / LAN / Host)',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ServerSettingsScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ServerSettingsScreen(),
+                      ),
                     );
                   },
                 ),
@@ -242,7 +276,9 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Đổi mật khẩu',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ChangePasswordScreen(),
+                      ),
                     );
                   },
                 ),
@@ -258,10 +294,15 @@ class ProfileScreen extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.error,
                   side: const BorderSide(color: AppColors.error, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 icon: const Icon(Icons.logout, size: 20),
-                label: const Text('Đăng Xuất Tài Khoản', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Đăng Xuất Tài Khoản',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 onPressed: () => _showLogoutDialog(context, authProvider),
               ),
             ),
@@ -273,20 +314,33 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildStatColumn(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.primaryDark, size: 22),
-        const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-      ],
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.primaryDark, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildMenuSection(BuildContext context, {required String title, required List<Widget> items}) {
+  Widget _buildMenuSection(
+    BuildContext context, {
+    required String title,
+    required List<Widget> items,
+  }) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -296,18 +350,27 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+      child: Material(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade600,
+                ),
+              ),
             ),
-          ),
-          ...items,
-        ],
+            ...items,
+          ],
+        ),
       ),
     );
   }
@@ -320,8 +383,13 @@ class ProfileScreen extends StatelessWidget {
   }) {
     return ListTile(
       leading: Icon(icon, color: AppColors.primary, size: 22),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 11)) : null,
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle, style: const TextStyle(fontSize: 11))
+          : null,
       trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
       onTap: onTap,
     );

@@ -20,8 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BusinessLogic\BusinessLogic.csproj" />
-    <EmbeddedResource Include="../../EVChargingStationManagementSystemMobile/audit/demo_classroom_seed.sql"
-                      LogicalName="TeamDemoSeed.sql" />
   </ItemGroup>
 
 </Project>

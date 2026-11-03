@@ -39,6 +39,8 @@ Flutter dùng API local mặc định. Nếu đã lưu URL từ dự án khác, 
 
 Backend chỉ đọc mục SePay trong file riêng khi chạy Development. File chứa `SePay.Enabled`, `SePay.TestToken` và `SePay.TestBankAccountId`. Backend tự chọn database demo và tắt VNPay trong chế độ này. JWT ký bằng khóa Development có sẵn hoặc khóa ngẫu nhiên được lưu riêng trên máy. Production dùng cấu hình JWT và CORS riêng.
 
+Dữ liệu mẫu được khai báo trong `Infrastructure/Data/Seed/TeamDemoSeed.cs`. Backend dùng EF Core để thêm các bản ghi còn thiếu sau migration, giữ nguyên các bản ghi demo đã có khi chạy lại.
+
 Swagger local ở `http://localhost:5058/swagger`. Để build APK debug trên Windows,
 chạy `powershell -ExecutionPolicy Bypass -File .\tool\build_android_debug.ps1` từ thư mục Flutter.
 
@@ -56,4 +58,4 @@ Backend TeamDemo mô phỏng tín hiệu cắm xe sau khi check-in đúng lịch
 
 Luồng này gọi API Sandbox từ localhost và dùng dữ liệu mô phỏng của SePay.
 
-Người quản lý có thể cấp riêng `appsettings.Local.json` cho thành viên được phép dùng cùng tài khoản SePay Test Mode. Đặt file tại thư mục gốc repo. Script `run_backend_local.ps1` tự đọc ba mục SePay trong file, tự tạo JWT riêng trên mỗi máy và dùng LocalDB TeamDemo. File này chứa token Test Mode và được Git bỏ qua. Chia sẻ file qua kênh riêng của nhóm.
+Người quản lý có thể cấp riêng `appsettings.Local.json` cho thành viên được phép dùng cùng tài khoản SePay Test Mode. Đặt file tại thư mục gốc repo. File chứa token Test Mode và được Git bỏ qua. Chia sẻ file qua kênh riêng của nhóm.

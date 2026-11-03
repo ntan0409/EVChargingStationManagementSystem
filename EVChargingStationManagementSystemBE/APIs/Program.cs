@@ -138,7 +138,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 if (teamDemo)
+{
     await TeamDemoSetup.InitializeAsync(app);
+    if (app.Configuration.GetValue<bool>("TeamDemo:SetupOnly"))
+        return;
+}
 
 // 🚀 Middleware pipeline
 if (app.Environment.IsDevelopment())

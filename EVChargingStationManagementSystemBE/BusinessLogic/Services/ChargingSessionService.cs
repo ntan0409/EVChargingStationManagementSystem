@@ -177,9 +177,13 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
         return Snapshot(session);
     }
 
-    private static IServiceResult Snapshot(ChargingSession? session) => session == null
-        ? Missing("Không tìm thấy phiên sạc.")
-        : new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, session.Adapt<ChargingSessionViewDetailDto>());
+    private IServiceResult Snapshot(ChargingSession? session)
+    {
+        if (session == null) return Missing("Không tìm thấy phiên sạc.");
+        var detail = session.Adapt<ChargingSessionViewDetailDto>();
+        detail.DemoReadingEnabled = DemoEnabled;
+        return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, detail);
+    }
     private static IServiceResult Fail(string message) => new ServiceResult(Const.FAIL_UPDATE_CODE, message);
     private static IServiceResult Missing(string message) => new ServiceResult(Const.WARNING_NO_DATA_CODE, message);
 }

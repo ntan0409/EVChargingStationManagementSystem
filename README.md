@@ -30,18 +30,14 @@ EVChargingStationManagementSystem/
 
 1. Cài .NET SDK 9 hoặc SDK mới hơn có runtime .NET 9.
 2. Cài Flutter stable 3.47.6 (Dart 3.13.5), phiên bản đã dùng để kiểm thử.
-3. Cài SQL Server Express LocalDB và sqlcmd. Cài EF CLI bằng `dotnet tool install --global dotnet-ef --version 9.0.9` nếu thiếu.
-4. Clone repo và mở PowerShell tại thư mục gốc.
-5. Vào thư mục Flutter chạy `flutter pub get --enforce-lockfile`, rồi quay lại thư mục gốc.
-6. Chạy `powershell -ExecutionPolicy Bypass -File .\run_backend_local.ps1 -SetupOnly` để tạo JWT cục bộ, migrate và seed EVCSMS_TeamDemo. Terminal in thông tin đăng nhập demo.
-7. Chạy `powershell -ExecutionPolicy Bypass -File .\run_backend_local.ps1`. Chờ API cổng 5058. Có thể gộp bước 6 và 7 bằng `-InitializeDatabase`.
-8. Trong thư mục Flutter chạy `flutter run -d chrome --web-hostname localhost --web-port 5387`, hoặc `flutter run -d <device-id>` với Android Emulator.
+3. Cài SQL Server Express LocalDB với instance mặc định `MSSQLLocalDB`.
+4. Clone repo và chép file riêng `appsettings.Local.json` vào thư mục gốc, cạnh README. Git bỏ qua file này.
+5. Mở solution backend trong Visual Studio, chọn startup project `APIs` và profile `http`, rồi bấm Run. Backend tự khôi phục gói khi build, tạo JWT cục bộ khi cần, áp dụng migration và nạp dữ liệu cho `EVCSMS_TeamDemo` trước khi mở cổng 5058. Cửa sổ log in tài khoản và mật khẩu demo. Chạy bằng terminal tương đương với `dotnet run --project EVChargingStationManagementSystemBE/APIs` từ thư mục gốc.
+6. Mở thư mục Flutter trong Android Studio, chọn Android Emulator và bấm Run. Flutter dùng API local mặc định. Nếu chạy Web để thử Google Sign-In, dùng `flutter run -d chrome --web-hostname localhost --web-port 5387` để khớp origin đã đăng ký.
 
 Flutter dùng API local mặc định. Nếu đã lưu URL từ dự án khác, đặt lại URL trong màn hình cài đặt. Cash dùng backend local. Dùng tài khoản Staff trong Swagger/API để xác nhận tiền mặt.
 
-Khi người quản lý có backend Sandbox dùng chung, cung cấp cho nhóm duy nhất URL API HTTPS. Chạy Flutter với `--dart-define=API_BASE_URL=https://<team-host>/api`. Người quản lý cấu hình merchant, khóa ký, JWT và IPN trên backend dùng chung. Các thành viên chỉ cần địa chỉ API. Script local chạy Cash và dùng database EVCSMS_TeamDemo riêng.
-
-File tùy chọn chứa cấu hình riêng của quản trị viên phải giữ ngoài Git. Có thể dùng .NET User Secrets cho Development hoặc biến môi trường trên máy chủ. Production yêu cầu JWT và CORS được cấu hình riêng.
+Backend chỉ đọc mục SePay trong file riêng khi chạy Development. File chứa `SePay.Enabled`, `SePay.TestToken` và `SePay.TestBankAccountId`. Backend tự chọn database demo và tắt VNPay trong chế độ này. JWT ký bằng khóa Development có sẵn hoặc khóa ngẫu nhiên được lưu riêng trên máy. Production dùng cấu hình JWT và CORS riêng.
 
 Swagger local ở `http://localhost:5058/swagger`. Để build APK debug trên Windows,
 chạy `powershell -ExecutionPolicy Bypass -File .\tool\build_android_debug.ps1` từ thư mục Flutter.
@@ -50,22 +46,13 @@ Xem [hướng dẫn VNPAY Sandbox](EVChargingStationManagementSystemMobile/audit
 và [báo cáo team setup](EVChargingStationManagementSystemMobile/audit/TEAM_SETUP_RESULT.md).
 ### Demo sạc không cần thiết bị
 
-Backend chạy qua `run_backend_local.ps1` bật mô phỏng trên EVCSMS_TeamDemo.
-Sau khi check-in đúng lịch, backend mô phỏng tín hiệu cắm xe. Để dừng sạc không cần nhập kWh,
-khởi chạy Flutter với hai tham số demo. Nếu API dùng cổng 5058, Android Emulator chạy:
-
-```powershell
-flutter run -d <device-id> --dart-define=API_BASE_URL=http://10.0.2.2:5058/api --dart-define=EVCSMS_CHARGING_DEMO=true
-```
-
-Backend tính kWh mô phỏng theo thời gian phiên và giới hạn dung lượng xe. Demo này dùng Cash.
+Backend TeamDemo mô phỏng tín hiệu cắm xe sau khi check-in đúng lịch. Flutter đọc chế độ từ phiên sạc và hiển thị nút dừng demo tự động. Backend tính kWh theo thời gian phiên và giới hạn dung lượng xe.
 
 ### Thanh toán SePay Test Mode
 
-1. Trong dashboard SePay, bật Test Mode, tạo tài khoản ngân hàng test và API Access token.
-2. Trên máy chạy backend, chạy `powershell -ExecutionPolicy Bypass -File .\configure_sepay_test.ps1 -TestBankAccountId <UUID>`. Nhập token khi được hỏi. Script kiểm tra tài khoản bằng API Sandbox và lưu token vào User Secrets.
-3. Khởi động lại backend TeamDemo. Chọn SePay Test Mode trên hóa đơn. App hiển thị số tiền và mã giao dịch.
-4. Tạo giao dịch tiền vào mô phỏng trong dashboard cho đúng tài khoản test. Nhập đúng số tiền và dùng nguyên mã của đơn làm nội dung giao dịch. Backend tự kiểm tra trong lúc app chờ xác nhận.
+1. Người quản lý cung cấp file `appsettings.Local.json` đã có token Test Mode và UUID tài khoản test.
+2. Chọn SePay Test Mode trên hóa đơn. App hiển thị số tiền và mã giao dịch.
+3. Tạo giao dịch tiền vào mô phỏng trong dashboard cho đúng tài khoản test. Nhập đúng số tiền và dùng nguyên mã của đơn làm nội dung giao dịch. Backend tự kiểm tra trong lúc app chờ xác nhận.
 
 Luồng này gọi API Sandbox từ localhost và dùng dữ liệu mô phỏng của SePay.
 

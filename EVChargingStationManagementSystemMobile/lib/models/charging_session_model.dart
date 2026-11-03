@@ -20,6 +20,7 @@ class ChargingSessionModel {
   final bool hasEnergy;
   final bool hasCost;
   final bool hasMeasuredBatteryPercent;
+  final bool demoReadingEnabled;
 
   ChargingSessionModel({
     required this.id,
@@ -41,6 +42,7 @@ class ChargingSessionModel {
     this.hasEnergy = true,
     this.hasCost = true,
     this.hasMeasuredBatteryPercent = false,
+    this.demoReadingEnabled = false,
   });
 
   factory ChargingSessionModel.fromJson(Map<String, dynamic> json) {
@@ -95,6 +97,7 @@ class ChargingSessionModel {
       hasEnergy: json['totalEnergyConsumedKWh'] != null,
       hasCost: json['cost'] != null,
       hasMeasuredBatteryPercent: json['currentBatteryPercent'] != null,
+      demoReadingEnabled: json['demoReadingEnabled'] == true,
     );
   }
 
@@ -149,6 +152,7 @@ class ChargingSessionModel {
       hasEnergy: hasEnergy,
       hasCost: hasCost,
       hasMeasuredBatteryPercent: hasMeasuredBatteryPercent,
+      demoReadingEnabled: demoReadingEnabled,
     );
   }
 }

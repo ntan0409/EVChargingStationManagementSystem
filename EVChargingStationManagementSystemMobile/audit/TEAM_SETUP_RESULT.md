@@ -23,3 +23,8 @@
 ## BLOCKED
 
 VNPAY Sandbox dùng chung chưa thể xác minh vì chưa có endpoint HTTPS chung với IPN đăng ký cho cả nhóm. Cash local đã sẵn sàng. Sau khi có endpoint, cần chạy giao dịch bằng thẻ test và đối chiếu Payment, phiên Paid và đúng một Transaction trên database test. Không triển khai cloud trong lượt này.
+# Cập nhật setup tự động
+
+Đặt file riêng `appsettings.Local.json` ở thư mục gốc rồi chạy project `APIs` với profile `http`. Backend tự chạy migration và seed trước khi mở cổng. Thành viên cần .NET SDK, Flutter và SQL Server Express LocalDB. EF CLI và sqlcmd không cần cho luồng khởi động này.
+
+Kiểm tra bản Git sạch có bản sửa trên một instance LocalDB riêng với database chưa có bảng. Backend áp dụng 14 migration, nạp 12 trạm và 20 tài khoản có mật khẩu. Đăng nhập driver và staff đều nhận JWT. API bật Cash và SePay Test Mode. Flutter đạt 244/244 bài test. Lượt này chưa chạy lại giao dịch SePay mô phỏng đến trạng thái Paid hoặc Google Sign-In Android.

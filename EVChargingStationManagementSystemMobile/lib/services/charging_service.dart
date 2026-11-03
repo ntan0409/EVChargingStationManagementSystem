@@ -34,10 +34,11 @@ class ChargingService {
   Future<ApiResponse<ChargingSessionModel>> stopSession(
     String sessionId, {
     double? energyDeliveredKWh,
+    bool demoReading = false,
   }) async {
-    if (energyDeliveredKWh == null ? !const bool.fromEnvironment('EVCSMS_CHARGING_DEMO') :
-        !energyDeliveredKWh.isFinite ||
-        energyDeliveredKWh < 0) {
+    if (energyDeliveredKWh == null
+        ? !demoReading
+        : !energyDeliveredKWh.isFinite || energyDeliveredKWh < 0) {
       return invalidInput(
         'Cần số đo điện năng thực (kWh) để dừng phiên; không dùng năng lượng mô phỏng.',
       );

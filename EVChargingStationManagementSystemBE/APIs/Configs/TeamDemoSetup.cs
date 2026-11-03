@@ -23,11 +23,7 @@ internal static class TeamDemoSetup
             return false;
 
         if (File.Exists(settingsPath))
-        {
-            var local = new ConfigurationBuilder().AddJsonFile(settingsPath).Build();
-            foreach (var name in new[] { "Enabled", "TestToken", "TestBankAccountId" })
-                builder.Configuration[$"SePay:{name}"] = local[$"SePay:{name}"];
-        }
+            builder.Configuration.AddJsonFile(settingsPath, optional: false, reloadOnChange: false);
 
         builder.Configuration["ConnectionStrings:DefaultConnection"] =
             @"Server=(localdb)\MSSQLLocalDB;Database=EVCSMS_TeamDemo;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True";

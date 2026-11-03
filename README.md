@@ -37,7 +37,7 @@ EVChargingStationManagementSystem/
 
 Flutter dùng API local mặc định. Nếu đã lưu URL từ dự án khác, đặt lại URL trong màn hình cài đặt. Cash dùng backend local. Dùng tài khoản Staff trong Swagger/API để xác nhận tiền mặt.
 
-Backend chỉ đọc mục SePay trong file riêng khi chạy Development. File chứa `SePay.Enabled`, `SePay.TestToken` và `SePay.TestBankAccountId`. Backend tự chọn database demo và tắt VNPay trong chế độ này. JWT ký bằng khóa Development có sẵn hoặc khóa ngẫu nhiên được lưu riêng trên máy. Production dùng cấu hình JWT và CORS riêng.
+Backend nạp cấu hình demo từ một file riêng khi chạy Development. File chứa cấu hình Google, CORS, cơ sở dữ liệu, JWT issuer và audience, Cloudinary và thanh toán. Backend luôn chọn LocalDB `EVCSMS_TeamDemo` và tắt VNPay trong chế độ này. Khóa ký JWT được tạo và lưu riêng trên máy khi cần. Production dùng cấu hình riêng.
 
 Dữ liệu mẫu được khai báo trong `Infrastructure/Data/Seed/TeamDemoSeed.cs`. Backend dùng EF Core để thêm các bản ghi còn thiếu sau migration, giữ nguyên các bản ghi demo đã có khi chạy lại.
 

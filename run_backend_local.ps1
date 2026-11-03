@@ -39,6 +39,8 @@ try {
     sqllocaldb start MSSQLLocalDB
     if ($LASTEXITCODE) { throw 'Cannot start SQL Server LocalDB.' }
     if ($InitializeDatabase -or $SetupOnly) {
+        dotnet restore $project
+        if ($LASTEXITCODE) { throw 'Cannot restore backend dependencies.' }
         dotnet ef database update --project Infrastructure --startup-project APIs --configuration Release --connection $env:ConnectionStrings__DefaultConnection
         if ($LASTEXITCODE) { throw 'Cannot initialize EVCSMS_TeamDemo. Check dotnet ef and LocalDB.' }
     }

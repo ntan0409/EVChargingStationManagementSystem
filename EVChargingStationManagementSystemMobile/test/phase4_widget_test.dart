@@ -171,7 +171,7 @@ void main() {
       );
       expect(
         find.textContaining('4b4e827e-2a9a-4c5c-a006-801cd15fce80'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.textContaining('Điện nạp:'), findsNothing);
       expect(tester.takeException(), isNull);

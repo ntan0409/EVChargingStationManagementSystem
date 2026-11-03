@@ -93,10 +93,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                           SelectableText(
                             'Tham chiếu thanh toán: ${item.paymentReference}',
                           ),
-                        if (item.chargingSessionId != null)
-                          SelectableText(
-                            'Mã phiên sạc: ${item.chargingSessionId}',
-                          ),
+
                         if (item.paymentId != null)
                           SelectableText('Mã thanh toán: ${item.paymentId}'),
                         SelectableText('Mã giao dịch: ${item.id}'),

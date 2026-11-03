@@ -9,15 +9,18 @@ import '../widgets/status_badge.dart';
 
 class LiveChargingScreen extends StatelessWidget {
   const LiveChargingScreen({super.key});
+  static const _demo = bool.fromEnvironment('EVCSMS_CHARGING_DEMO');
   Future<void> _stop(BuildContext context) async {
     final provider = context.read<ChargingSessionProvider>();
-    final energy = await showDialog<double>(
-      context: context,
-      builder: (_) => _MeterReadingDialog(
-        capacity: provider.currentSession!.batteryCapacityKWh,
-      ),
-    );
-    if (energy == null || !context.mounted) return;
+    final energy = _demo
+        ? null
+        : await showDialog<double>(
+            context: context,
+            builder: (_) => _MeterReadingDialog(
+              capacity: provider.currentSession!.batteryCapacityKWh,
+            ),
+          );
+    if ((!_demo && energy == null) || !context.mounted) return;
     final accepted = await provider.stopCharging(energyDeliveredKWh: energy);
     if (!context.mounted) return;
     if (accepted) {
@@ -59,19 +62,24 @@ class LiveChargingScreen extends StatelessWidget {
               child: const Text('Tải phiên hiện tại'),
             ),
           ] else ...[
-            SelectableText('Mã phiên: ${session.id}'),
             const SizedBox(height: 12),
             StatusBadge(status: session.status),
             const SizedBox(height: 16),
             const Text(
-              'Máy chủ chưa cung cấp telemetry phần cứng thời gian thực. Các số liệu dưới đây là snapshot từ backend.',
+              _demo
+                  ? 'Chế độ demo. Điện năng và chi phí tạm tính tự cập nhật mỗi 5 giây.'
+                  : 'Máy chủ chưa cung cấp telemetry phần cứng thời gian thực. Các số liệu dưới đây là snapshot từ backend.',
             ),
             const SizedBox(height: 16),
             Card(
               child: Column(
                 children: [
                   ListTile(
-                    title: const Text('Điện năng máy chủ ghi nhận'),
+                    title: const Text(
+                      _demo
+                          ? 'Điện năng mô phỏng'
+                          : 'Điện năng máy chủ ghi nhận',
+                    ),
                     trailing: Text(
                       session.hasEnergy
                           ? Formatters.formatEnergy(
@@ -103,7 +111,11 @@ class LiveChargingScreen extends StatelessWidget {
                     ),
                   ),
                   ListTile(
-                    title: const Text('Chi phí phiên trên máy chủ'),
+                    title: const Text(
+                      _demo
+                          ? 'Chi phí tạm tính (chưa VAT)'
+                          : 'Chi phí phiên trên máy chủ',
+                    ),
                     trailing: Text(
                       session.hasCost
                           ? Formatters.formatCurrency(session.cost)
@@ -114,14 +126,9 @@ class LiveChargingScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: provider.isLoading ? null : provider.refreshSession,
-              child: const Text('Cập nhật trạng thái'),
-            ),
-            const SizedBox(height: 12),
             if (session.status == 'Charging')
               CustomButton(
-                text: 'Dừng sạc với số đo thực',
+                text: _demo ? 'Dừng sạc (demo)' : 'Dừng sạc với số đo thực',
                 isLoading: provider.isLoading,
                 onPressed: provider.isLoading ? null : () => _stop(context),
               ),

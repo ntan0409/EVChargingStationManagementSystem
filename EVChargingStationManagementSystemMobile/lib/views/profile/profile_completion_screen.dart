@@ -149,7 +149,21 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final selected = _selected;
     return Scaffold(
+      bottomNavigationBar: !_loading && selected != null && _valid(selected)
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: CustomButton(
+                  text: 'Xác nhận xe và lưu hồ sơ',
+                  isLoading: _saving || auth.isLoading,
+                  onPressed: _save,
+                ),
+              ),
+            )
+          : null,
       appBar: AppBar(
         title: const Text('Hoàn tất hồ sơ'),
         actions: [
@@ -229,11 +243,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               ),
             ),
           const SizedBox(height: 12),
-          CustomButton(
-            text: 'Lưu và xác minh với máy chủ',
-            isLoading: _saving || auth.isLoading,
-            onPressed: _loading ? null : _save,
-          ),
           TextButton(
             onPressed: () => Navigator.of(
               context,

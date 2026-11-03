@@ -131,8 +131,11 @@ void main() {
       await tester.enterText(fields.at(1), '0900000001');
       await tester.tap(find.text(vehicle['modelName']));
       await tester.pump();
-      await tester.ensureVisible(find.text('Lưu và xác minh với máy chủ'));
-      await tester.tap(find.text('Lưu và xác minh với máy chủ'));
+      expect(
+        find.text('Xác nhận xe và lưu hồ sơ').hitTestable(),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Xác nhận xe và lưu hồ sơ'));
       await tester.pumpAndSettle();
       expect((profile['vehicleModelIds'] as List), contains(f.vehicleId));
       expect(auth.currentUser!.profileCompleted, isTrue);
@@ -163,8 +166,12 @@ void main() {
       await tester.enterText(fields.at(0), 'Fixture name');
       await tester.enterText(fields.at(1), '0900000001');
       await tester.tap(find.text(vehicle['modelName']));
-      await tester.ensureVisible(find.text('Lưu và xác minh với máy chủ'));
-      await tester.tap(find.text('Lưu và xác minh với máy chủ'));
+      await tester.pump();
+      expect(
+        find.text('Xác nhận xe và lưu hồ sơ').hitTestable(),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Xác nhận xe và lưu hồ sơ'));
       await tester.pumpAndSettle();
       expect(auth.currentUser!.profileCompleted, isFalse);
       expect(find.byType(ProfileCompletionScreen), findsOneWidget);

@@ -35,7 +35,7 @@ class ChargingService {
     String sessionId, {
     double? energyDeliveredKWh,
   }) async {
-    if (energyDeliveredKWh == null ||
+    if (energyDeliveredKWh == null ? !const bool.fromEnvironment('EVCSMS_CHARGING_DEMO') :
         !energyDeliveredKWh.isFinite ||
         energyDeliveredKWh < 0) {
       return invalidInput(
@@ -45,7 +45,7 @@ class ChargingService {
     return _apiClient.patch(
       ApiConstants.sessionStop,
       queryParameters: {'sessionId': sessionId},
-      data: {'energyDeliveredKWh': energyDeliveredKWh},
+      data: energyDeliveredKWh == null ? {'demoReading': true} : {'energyDeliveredKWh': energyDeliveredKWh},
       fromJson: (value) => _forSession(value, sessionId),
     );
   }

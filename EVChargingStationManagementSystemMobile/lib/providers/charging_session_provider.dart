@@ -178,7 +178,7 @@ class ChargingSessionProvider extends ChangeNotifier {
 
   Future<bool> stopCharging({double? energyDeliveredKWh}) async {
     if (_disposed || _isLoading || _currentSession == null) return false;
-    if (energyDeliveredKWh == null ||
+    if (energyDeliveredKWh == null ? !const bool.fromEnvironment('EVCSMS_CHARGING_DEMO') :
         !energyDeliveredKWh.isFinite ||
         energyDeliveredKWh < 0) {
       _errorMessage =

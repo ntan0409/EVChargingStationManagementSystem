@@ -272,7 +272,7 @@ internal static class Runner
             }
 
             var methods = await Data(await a.GetAsync("/api/Payment/methods"), HttpStatusCode.OK, "Server payment methods");
-            Check(methods.EnumerateArray().Any(m => m.GetProperty("id").GetString() == "VNPay" && !m.GetProperty("available").GetBoolean()), "Gateway disabled without verified merchant");
+            Check(methods.EnumerateArray().Any(m => m.GetProperty("id").GetString() == "SePayTest" && !m.GetProperty("available").GetBoolean()), "Gateway disabled without verified merchant");
             Check((await a.PostAsync("/api/Payment?sessionId=" + sessionId, null)).StatusCode == HttpStatusCode.Conflict, "No fake signed gateway URL when disabled");
             var quote = await Data(await a.GetAsync("/api/Payment/session/" + sessionId), HttpStatusCode.OK, "Server quote before request");
             var expectedAmount = decimal.Round(initialCost * 0.9m * 1.10m, 0, MidpointRounding.AwayFromZero);

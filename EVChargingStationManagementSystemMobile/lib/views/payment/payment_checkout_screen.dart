@@ -129,8 +129,10 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
               : null;
         });
       }
-    } else if (_method == 'Offline') {
-      final accepted = await payments.processOfflinePayment(session.id);
+    } else if (_method == 'Offline' || _method == 'SePayTest') {
+      final accepted = _method == 'SePayTest'
+          ? await payments.processSePayTest(session.id)
+          : await payments.processOfflinePayment(session.id);
       final error = payments.errorMessage;
       await payments.fetchQuote(session.id);
       if (!mounted) return;
@@ -216,7 +218,6 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
               child: const Text('Tải phiên từ máy chủ'),
             ),
           ] else ...[
-            SelectableText('Mã phiên: ${session.id}'),
             const SizedBox(height: 16),
             if (payments.checking) const LinearProgressIndicator(),
             if (payments.errorMessage != null)
@@ -340,9 +341,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
               child: const Text('Kiểm tra trạng thái / hóa đơn'),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Mở VNPay hoặc tạo yêu cầu tại quầy chưa có nghĩa đã thanh toán. Chỉ xác nhận từ máy chủ mới hoàn tất hóa đơn.',
-            ),
+            const Text('Hóa đơn hoàn tất khi máy chủ xác nhận thanh toán.'),
           ],
         ],
       ),

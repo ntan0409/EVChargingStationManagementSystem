@@ -92,18 +92,49 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
-                    child: Text(
-                      user != null && user.name.isNotEmpty
-                          ? user.name.characters.first.toUpperCase()
-                          : 'U',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withOpacity(0.15),
+                    ),
+                    child: ClipOval(
+                      child: (user?.avatar != null &&
+                              user!.avatar!.trim().isNotEmpty)
+                          ? Image.network(
+                              user.avatar!.trim(),
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Center(
+                                child: Text(
+                                  user != null && user.name.isNotEmpty
+                                      ? user.name.characters.first
+                                          .toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                user != null && user.name.isNotEmpty
+                                    ? user.name.characters.first
+                                        .toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 12),

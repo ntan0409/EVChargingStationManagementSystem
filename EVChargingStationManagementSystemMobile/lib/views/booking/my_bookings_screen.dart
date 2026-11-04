@@ -1,16 +1,21 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/booking_model.dart';
 import '../../providers/booking_provider.dart';
-import '../widgets/status_badge.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/api_problem.dart';
-import 'create_booking_screen.dart';
-import 'checkin_qr_screen.dart';
+import '../../providers/charging_session_provider.dart';
+import '../../providers/vehicle_provider.dart';
 import '../../services/station_service.dart';
+import '../charging/live_charging_screen.dart';
 import '../charging/start_charging_screen.dart';
+import '../payment/payment_checkout_screen.dart';
+import '../widgets/api_problem.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/status_badge.dart';
+import 'checkin_qr_screen.dart';
+import 'create_booking_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -22,10 +27,41 @@ class MyBookingsScreen extends StatefulWidget {
 class _MyBookingsScreenState extends State<MyBookingsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<BookingProvider>().fetchMyBookings();
+      context.read<VehicleProvider>().fetchVehicles();
+      context.read<ChargingSessionProvider>().refreshSession();
+      _startPolling();
+    });
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) return;
+      context.read<BookingProvider>().fetchMyBookings(silent: true);
+      context.read<ChargingSessionProvider>().refreshSession();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _tabController.dispose();
+    super.dispose();
+  }
 
   Future<void> _continueBooking(BookingModel booking) async {
     final provider = context.read<BookingProvider>();
     if (provider.isLoading) return;
+
     if (booking.status != 'InProgress') {
       if (booking.checkInCode == null) return;
       final accepted = await provider.checkIn(booking.checkInCode!);
@@ -41,6 +77,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       );
       return;
     }
+
     if (booking.connectorId == null) return;
     final location = await StationService().resolveConnector(
       booking.connectorId!,
@@ -52,6 +89,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       ).showSnackBar(SnackBar(content: Text(location.message)));
       return;
     }
+
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => StartChargingScreen(
@@ -61,22 +99,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       ),
     );
     if (mounted) provider.fetchMyBookings();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Provider.of<BookingProvider>(context, listen: false).fetchMyBookings();
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   void _showCancelDialog(BuildContext context, BookingModel booking) {
@@ -96,12 +118,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              final success = await Provider.of<BookingProvider>(
-                context,
-                listen: false,
-              ).cancelBooking(booking.id);
+              final messenger = ScaffoldMessenger.of(context);
+              final success = await context
+                  .read<BookingProvider>()
+                  .cancelBooking(booking.id);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(
                       success ? 'Đã hủy lịch đặt thành công' : 'Hủy thất bại',
@@ -118,6 +140,25 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
         ],
       ),
     );
+  }
+
+  String _formatReservedLocation(BookingModel booking) {
+    final post = booking.chargingPostName?.trim();
+    final conn = booking.connectorName?.trim();
+
+    if (post != null && post.isNotEmpty && conn != null && conn.isNotEmpty) {
+      return '$post • $conn';
+    }
+    if (post != null && post.isNotEmpty) {
+      return '$post (Cổng giữ chỗ)';
+    }
+    if (conn != null && conn.isNotEmpty) {
+      return conn;
+    }
+    if (booking.connectorId != null && booking.connectorId!.isNotEmpty) {
+      return 'Cổng sạc #${booking.connectorId!.substring(0, 6).toUpperCase()}';
+    }
+    return 'Cổng sạc được phân bổ';
   }
 
   @override
@@ -164,14 +205,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
         child: TabBarView(
           controller: _tabController,
           children: [
-            // Active Bookings Tab
             _buildBookingList(
               context,
               bookingProvider.activeBookings,
               bookingProvider.isLoading,
               isActiveTab: true,
             ),
-            // History Bookings Tab
             _buildBookingList(
               context,
               bookingProvider.historyBookings,
@@ -206,7 +245,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
     }
 
     final provider = context.read<BookingProvider>();
-    if (provider.errorMessage != null) {
+    if (provider.errorMessage != null && list.isEmpty) {
       return ApiProblem(
         message: provider.errorMessage!,
         onRetry: provider.fetchMyBookings,
@@ -234,11 +273,31 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       );
     }
 
+    final vehicles = context.watch<VehicleProvider>().vehicles;
+    final activeSession = context.watch<ChargingSessionProvider>().currentSession;
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
       itemCount: list.length,
       itemBuilder: (context, index) {
         final booking = list[index];
+        final matchedVehicle = vehicles
+            .where((v) => v.id.toLowerCase() == booking.vehicleId?.toLowerCase())
+            .firstOrNull;
+        final vehicleDisplayName = booking.vehicleName ??
+            matchedVehicle?.modelName ??
+            (booking.vehicleId != null ? 'Xe điện của bạn' : 'Chưa có thông tin');
+
+        final isCharging = activeSession != null &&
+            activeSession.status == 'Charging' &&
+            (activeSession.connectorId?.toLowerCase() == booking.connectorId?.toLowerCase() ||
+                activeSession.id.isNotEmpty && booking.isInProgress);
+
+        final isSessionCompleted = activeSession != null &&
+            activeSession.status == 'Completed' &&
+            (activeSession.connectorId?.toLowerCase() == booking.connectorId?.toLowerCase() ||
+                activeSession.id.isNotEmpty && booking.isInProgress);
+
         return Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: 16),
@@ -264,7 +323,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    StatusBadge(status: booking.status),
+                    StatusBadge(
+                      status: isCharging ? 'Charging' : booking.status,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -272,6 +333,119 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                   booking.location ?? '',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
+
+                // Hiển thị vị trí giữ chỗ: Trụ sạc và Cổng sạc
+                if (booking.connectorId != null ||
+                    booking.chargingPostName != null ||
+                    booking.connectorName != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (booking.isInProgress || isCharging)
+                          ? AppColors.primary.withValues(alpha: 0.08)
+                          : Colors.blue.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: (booking.isInProgress || isCharging)
+                            ? AppColors.primary.withValues(alpha: 0.25)
+                            : Colors.blue.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: (booking.isInProgress || isCharging)
+                                ? AppColors.primary.withValues(alpha: 0.15)
+                                : Colors.blue.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.ev_station,
+                            color: (booking.isInProgress || isCharging)
+                                ? AppColors.primary
+                                : Colors.blue.shade700,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                booking.isInProgress
+                                    ? 'CỔNG SẠC SẴN SÀNG'
+                                    : 'VỊ TRÍ GIỮ CHỖ CHO BẠN',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _formatReservedLocation(booking),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: booking.isInProgress
+                                ? AppColors.primary.withValues(alpha: 0.15)
+                                : Colors.blue.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                booking.isInProgress
+                                    ? Icons.lock_open
+                                    : Icons.lock_outline,
+                                size: 13,
+                                color: booking.isInProgress
+                                    ? AppColors.primary
+                                    : Colors.blue.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                booking.isInProgress
+                                    ? 'Đã mở khóa'
+                                    : 'Đã khóa slot',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: booking.isInProgress
+                                      ? AppColors.primary
+                                      : Colors.blue.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const Divider(height: 20),
 
                 // Booking details grid
@@ -295,19 +469,19 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                   children: [
                     _buildInfoColumn(
                       'Xe sử dụng',
-                      booking.vehicleName ?? 'Chưa có thông tin',
+                      vehicleDisplayName,
                     ),
                     _buildInfoColumn(
                       'Chi phí tạm tính',
-                      booking.hasEstimatedCost
+                      booking.hasEstimatedCost && booking.estimatedCost > 0
                           ? Formatters.formatCurrency(booking.estimatedCost)
-                          : 'Máy chủ chưa cung cấp',
+                          : 'Theo thực tế',
                     ),
                   ],
                 ),
 
                 if (isActiveTab &&
-                    (booking.isScheduled || booking.isInProgress)) ...[
+                    (booking.isScheduled || booking.isInProgress || isCharging || isSessionCompleted)) ...[
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -324,7 +498,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                           label: const Text('Hủy Đặt'),
                           onPressed:
                               context.watch<BookingProvider>().isLoading ||
-                                  booking.isInProgress
+                                  booking.isInProgress ||
+                                  isCharging
                               ? null
                               : () => _showCancelDialog(context, booking),
                         ),
@@ -356,16 +531,62 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton(
-                      onPressed: context.watch<BookingProvider>().isLoading
-                          ? null
-                          : () => _continueBooking(booking),
-                      child: Text(
-                        booking.isInProgress
-                            ? 'Tiếp tục tới cổng sạc'
-                            : 'Check-in với máy chủ',
-                      ),
-                    ),
+                    child: isCharging
+                        ? FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.accent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.flash_on, size: 20),
+                            label: const Text(
+                              'Theo dõi phiên sạc (Đang sạc)',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const LiveChargingScreen(),
+                                ),
+                              );
+                            },
+                          )
+                        : isSessionCompleted
+                            ? FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.payment, size: 20),
+                                label: const Text(
+                                  'Thanh toán hóa đơn sạc',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const PaymentCheckoutScreen(),
+                                    ),
+                                  );
+                                },
+                              )
+                            : FilledButton(
+                                onPressed: context.watch<BookingProvider>().isLoading
+                                    ? null
+                                    : () => _continueBooking(booking),
+                                child: Text(
+                                  booking.isInProgress
+                                      ? 'Tiếp tục tới cổng sạc'
+                                      : 'Check-in với máy chủ',
+                                ),
+                              ),
                   ),
                 ],
               ],

@@ -25,15 +25,21 @@ class VehicleService {
       fromJson: contractMap,
     );
     if (!profile.success || profile.data == null) return forwardError(profile);
-    final ids = profile.data!['vehicleModelIds'];
-    if (ids is! List || ids.any((id) => id is! String || !isApiId(id))) {
+    final rawIds = profile.data!['vehicleModelIds'];
+    if (rawIds is! List) {
       return invalidInput('Danh sách xe trong hồ sơ chưa hợp lệ.');
     }
+    final ids = rawIds
+        .map((id) => id?.toString().trim().toLowerCase() ?? '')
+        .where(isApiId)
+        .toSet();
     if (ids.isEmpty) return ApiResponse.success([]);
     final catalog = await getVehicleModels();
     if (!catalog.success || catalog.data == null) return catalog;
     return ApiResponse.success(
-      catalog.data!.where((vehicle) => ids.contains(vehicle.id)).toList(),
+      catalog.data!
+          .where((vehicle) => ids.contains(vehicle.id.trim().toLowerCase()))
+          .toList(),
     );
   }
 

@@ -1,0 +1,301 @@
+.pay-page {
+  background: #f9fafb;
+  min-height: 100vh;
+  padding: 40px 20px;
+  font-family: "Inter", sans-serif;
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.payment-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.payment-header p {
+  color: #64748b;
+}
+
+.steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.step.active .circle {
+  background: #16a34a;
+  color: white;
+}
+
+.step.done .circle {
+  background: #16a34a;
+  color: white;
+}
+
+.info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.info p {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.divider {
+  width: 80px;
+  height: 2px;
+  background: #e5e7eb;
+  margin: 0 16px;
+}
+
+.divider.active {
+  background: #16a34a;
+}
+
+.pay-box {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+}
+
+.pay-box h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: ;
+}
+
+.pay-box .sub {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.summary .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: #334155;
+}
+
+.summary .total {
+  font-weight: 700;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.method-section {
+  margin-top: 24px;
+}
+
+.method-options {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.method {
+  flex: 1;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.method:hover {
+  border-color: #16a34a;
+}
+
+.method.selected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.method label {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.method p {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.card-form {
+  margin-top: 20px;
+}
+
+.card-form label {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.card-form input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 6px 0 12px;
+  font-size: 14px;
+}
+
+.card-form .row2 {
+  display: flex;
+  gap: 12px;
+}
+
+.pay-btn {
+  width: 100%;
+  margin-top: 8px;
+  background: #16a34a;
+  color: white;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.pay-btn:hover {
+  background: #15803d;
+}
+
+.back-btn {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.support-section {
+  max-width: 600px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+
+.support-section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.support-grid {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  font-size: 14px;
+  color: #475569;
+}
+/* ===== Thông tin thanh toán box ===== */
+.payment-summary {
+  background: #f8f9fa;
+  border: 1px solid #e2e2e2;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 25px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.summary-icon {
+  background: #e8f5e9;
+  border-radius: 50%;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-info h4 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 600;
+  color:black;
+}
+
+.summary-info .price {
+  color: #28a745;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.summary-benefits {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.summary-benefits li {
+  font-size: 14px;
+  color: #333;
+  margin: 4px 0;
+}
+
+/* Radio section */
+.method-section h4 {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.method-options {
+  display: flex;
+  gap: 10px;
+}
+
+.method {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.method.selected {
+  border: 2px solid #28a745;
+  background: #e8f5e9;
+}
+

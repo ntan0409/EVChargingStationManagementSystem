@@ -34,9 +34,18 @@ namespace BusinessLogic.Services
 
                 return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, drivers);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
 
@@ -60,9 +69,18 @@ namespace BusinessLogic.Services
 
                 return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, driver);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
 
@@ -82,9 +100,18 @@ namespace BusinessLogic.Services
 
                 return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, driver);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
 
@@ -114,12 +141,31 @@ namespace BusinessLogic.Services
                     if (models.Count != newIds.Count || models.Any(v => !DriverJourneyService.Supported(v)))
                         return new ServiceResult(Const.FAIL_UPDATE_CODE, "Chỉ chọn xe Active có dung lượng pin và loại xe hợp lệ từ catalog Admin.");
                 }
+                if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+                {
+                    var phoneExists = await _unitOfWork.UserAccountRepository.GetQueryable()
+                        .AsNoTracking()
+                        .AnyAsync(u => !u.IsDeleted && u.Id != driver.AccountId && u.PhoneNumber == dto.PhoneNumber);
+
+                    if (phoneExists)
+                        return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                }
+
                 dto.Adapt(driver);
                 driver.UpdatedAt = DateTime.Now;
 
                 if (driver.UserAccount != null)
                 {
                     dto.Adapt(driver.UserAccount);
+                    if (!string.IsNullOrWhiteSpace(dto.Name))
+                        driver.UserAccount.Name = dto.Name;
+                    if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+                        driver.UserAccount.PhoneNumber = dto.PhoneNumber;
+                    if (dto.Address != null)
+                        driver.UserAccount.Address = dto.Address;
+                    if (dto.ProfilePictureUrl != null)
+                        driver.UserAccount.ProfilePictureUrl = dto.ProfilePictureUrl;
+
                     driver.UserAccount.UpdatedAt = DateTime.Now;
                 }
 
@@ -166,9 +212,18 @@ namespace BusinessLogic.Services
                 await AttachEligibility(updatedDriver);
                 return new ServiceResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, updatedDriver);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
 
@@ -194,9 +249,18 @@ namespace BusinessLogic.Services
                 var response = driver.Adapt<EVDriverViewDto>();
                 return new ServiceResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, response);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
 
@@ -225,9 +289,18 @@ namespace BusinessLogic.Services
 
                 return new ServiceResult(Const.SUCCESS_DELETE_CODE, Const.SUCCESS_DELETE_MSG);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
         // EVDriver tự xem hồ sơ của mình
@@ -257,9 +330,18 @@ namespace BusinessLogic.Services
                 await AttachEligibility(driver);
                 return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, driver);
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
 
@@ -304,9 +386,18 @@ namespace BusinessLogic.Services
 
                 return new ServiceResult(Const.SUCCESS_DELETE_CODE, "Xe đã được xóa khỏi hồ sơ thành công.");
             }
+            catch (DbUpdateException dbEx)
+            {
+                var inner = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (inner.Contains("IX_AspNetUsers_PhoneNumber") || inner.Contains("duplicate key"))
+                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Sá»‘ Ä‘iá»‡n thoáº¡i nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c.");
+                return new ServiceResult(Const.ERROR_EXCEPTION, inner);
+            }
             catch (Exception ex)
             {
-                return new ServiceResult(Const.ERROR_EXCEPTION, ex.Message);
+                var cur = ex;
+                while (cur.InnerException != null) cur = cur.InnerException;
+                return new ServiceResult(Const.ERROR_EXCEPTION, cur.Message);
             }
         }
     }

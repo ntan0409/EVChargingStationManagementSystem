@@ -1,0 +1,171 @@
+/* ===== Container ===== */
+.report-container {
+  max-width: 1100px; /* rộng hơn một chút */
+  margin: 40px auto;
+  padding: 25px 20px;
+  background-color: #f8f9fa; /* nền nhẹ */
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.report-container h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #1e293b;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* ===== Filter & Search Container ===== */
+.filter-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap; /* responsive trên màn hình nhỏ */
+}
+
+.filter-container label {
+  font-weight: 500;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+/* Select filter */
+.filter-container select {
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  background-color: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  min-width: 150px;
+}
+
+.filter-container select:hover {
+  border-color: #64748b;
+}
+
+.filter-container select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+/* Input search */
+.filter-container input[type="text"] {
+  flex: 2; /* chiếm nhiều hơn so với select */
+  min-width: 47vh; /* khởi điểm rộng hơn */
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.filter-container input[type="text"]:hover {
+  border-color: #64748b;
+}
+
+.filter-container input[type="text"]:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+/* ===== Table Styling ===== */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* tránh cell quá dài */
+  word-wrap: break-word;
+}
+
+.report-table th,
+.report-table td {
+  border: 1px solid #ddd;
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-table th {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.report-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.report-table tr:hover {
+  background-color: #d0ebff;
+}
+
+.no-report {
+  text-align: center;
+  color: #64748b;
+  font-style: italic;
+  padding: 12px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .filter-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-container input[type="text"] {
+    width: 100%;
+  }
+
+  .report-table th,
+  .report-table td {
+    padding: 10px 6px;
+  }
+}
+/* ===== Pagination ===== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap; /* responsive trên màn hình nhỏ */
+}
+
+.pagination button {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  background-color: #fff;
+  color: #1e293b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination button:hover {
+  border-color: #007bff;
+  color: #007bff;
+  background-color: #e6f0ff;
+}
+
+.pagination button:disabled {
+  border-color: #e2e8f0;
+  color: #a1a1aa;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
+.pagination button.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+

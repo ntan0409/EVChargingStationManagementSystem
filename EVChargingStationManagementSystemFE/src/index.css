@@ -1,0 +1,77 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* Reset cơ bản */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Toàn bộ body */
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding-top: 80px;
+  background: linear-gradient(135deg, #ffffffff, #e5ecf7ff);
+  color: #fff;
+}
+
+/* Container chính (homepage) */
+.homepage {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  animation: fadeIn 1s ease;
+  margin-top: 80px;
+}
+
+/* Tiêu đề */
+.homepage h1 {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  font-weight: bold;
+  
+}
+
+/* Mô tả */
+.homepage p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  color: #e0e0e0;
+}
+
+/* Nút */
+.homepage button {
+  background: #ff9800;
+  border: none;
+  padding: 12px 28px;
+  font-size: 1rem;
+  color: #fff;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.homepage button:hover {
+  background: #e68900;
+  transform: scale(1.05);
+}
+
+/* Hiệu ứng fade-in */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

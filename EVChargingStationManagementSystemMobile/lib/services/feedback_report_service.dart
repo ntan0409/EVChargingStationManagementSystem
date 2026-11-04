@@ -16,6 +16,9 @@ class FeedbackReportService {
     final response = await _apiClient.post(
       ApiConstants.feedback,
       data: {
+        'subject': 'Đánh giá trạm sạc',
+        'stars': rating.toDouble(),
+        'message': comment,
         'stationId': stationId,
         'rating': rating,
         'comment': comment,

@@ -57,3 +57,13 @@ app.*.map.json
 # Local team settings
 .env.local
 appsettings.Local.json
+
+# Node / Frontend Web
+**/node_modules/
+**/dist/
+
+# Configuration & Secrets
+**/appsetting*.json
+**/appsettings*.json
+test_screenshot.png
+

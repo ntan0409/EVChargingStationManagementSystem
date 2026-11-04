@@ -76,20 +76,50 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: AppColors.primary.withOpacity(
-                              0.15,
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primary.withOpacity(0.15),
                             ),
-                            child: Text(
-                              user != null && user.name.isNotEmpty
-                                  ? user.name.characters.first.toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
+                            child: ClipOval(
+                              child: (user?.avatar != null &&
+                                      user!.avatar!.trim().isNotEmpty)
+                                  ? Image.network(
+                                      user.avatar!.trim(),
+                                      width: 48,
+                                      height: 48,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Center(
+                                        child: Text(
+                                          user != null && user.name.isNotEmpty
+                                              ? user.name.characters.first
+                                                  .toUpperCase()
+                                              : 'U',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        user != null && user.name.isNotEmpty
+                                            ? user.name.characters.first
+                                                .toUpperCase()
+                                            : 'U',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 12),

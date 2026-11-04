@@ -1,0 +1,244 @@
+/* ======= Tổng thể ======= */
+.profile-page {
+  padding: 20px 40px;
+  background-color: #f7f9fc;
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+  color: #333;
+}
+
+/* ======= Header ======= */
+.profile-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  margin-bottom: 25px;
+}
+
+.profile-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-header p {
+  color: #666;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.profile-header .status {
+  font-size: 14px;
+  color: #666;
+}
+
+.profile-header .status span {
+  display: inline-block;
+  background-color: #27ae60; /* xanh lá */
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* ======= Thao tác nhanh ======= */
+/* Phần Thao tác nhanh */
+.quick-actions {
+  margin-top: 20px;
+}
+
+.quick-actions h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #222;
+}
+
+/* Lưới 4x4 */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.action-box {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px 10px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.action-box .icon {
+  background: #f4f6fa;
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  color: #2c7be5;
+  font-size: 18px;
+}
+
+.action-box p {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* ======= Dưới cùng: Giao dịch và Trạng thái ======= */
+.bottom-section {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.recent-transactions,
+.account-status {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+}
+
+.recent-transactions h3,
+.account-status h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.transaction-item {
+  margin-bottom: 10px;
+}
+
+.transaction-item p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.transaction-item small {
+  color: #888;
+  font-size: 13px;
+}
+
+.transaction-item .positive {
+  color: #27ae60;
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+.transaction-item .price {
+  color: #2980b9;
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+.recent-transactions button {
+  background: none;
+  border: none;
+  color: #27ae60;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+.account-status p {
+  font-size: 14px;
+  margin: 6px 0;
+}
+
+.account-status .green {
+  color: #27ae60;
+  font-weight: 500;
+}
+
+.account-status .star {
+  color: #f1c40f;
+  font-weight: 500;
+}
+
+.manage-btn {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  width: 100%;
+  transition: background 0.25s ease;
+}
+
+.manage-btn:hover {
+  background-color: #219150;
+}
+
+/* ======= Hỗ trợ ======= */
+.support-section {
+  margin-top: 30px;
+  background: linear-gradient(90deg, #00b09b, #96c93d);
+  border-radius: 14px;
+  padding: 25px 30px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.support-section h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.support-section p {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.support-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.support-buttons button {
+  background-color: #fff;
+  color: #007b5e;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.support-buttons button:hover {
+  background-color: #f2f2f2;
+}
+

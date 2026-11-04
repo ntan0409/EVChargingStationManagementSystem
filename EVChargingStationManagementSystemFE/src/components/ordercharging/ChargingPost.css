@@ -1,0 +1,204 @@
+/* ====== Overlay và box chính ====== */
+.post-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.post-popup-box {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.25);
+  width: 95%;
+  max-width: 900px; /* rộng hơn trước */
+  height: 50vh; /* cao gần full màn hình */
+  overflow: hidden;
+  flex-direction: row;
+}
+
+/* ====== Sidebar ====== */
+.post-popup-sidebar {
+  background-color: #f5f7fa;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
+  overflow-y: auto; /* scroll nếu sidebar dài */
+}
+
+.post-popup-sidebar button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.post-popup-sidebar button:hover {
+  background-color: #0069d9;
+  transform: translateY(-2px);
+}
+
+.post-popup-sidebar .close-btn {
+  background-color: #dc3545;
+}
+
+.post-popup-sidebar .close-btn:hover {
+  background-color: #b52a37;
+}
+
+/* ====== Content chính ====== */
+.post-popup-content {
+  flex: 1;
+  padding: 25px 30px;
+  background: #fff;
+  overflow-y: auto; /* scroll khi nội dung dài */
+  max-height: 100vh; /* giới hạn chiều cao */
+}
+
+/* ====== Form ====== */
+.post-popup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 25px;
+}
+
+.post-popup-form label {
+  font-weight: 600;
+  color: #333;
+}
+
+.post-popup-form input,
+.post-popup-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.post-popup-form button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 0;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.post-popup-form button:hover {
+  background-color: #1e7e34;
+}
+
+/* ====== Danh sách các trụ ====== */
+.post-popup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 30px;
+  max-height: 700px; /* giới hạn danh sách */
+  overflow-y: auto;  /* scroll khi danh sách dài */
+}
+
+/* ====== Item ====== */
+.post-popup-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.post-popup-item button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.post-popup-item button:hover {
+  background-color: #0056b3;
+}
+
+.post-popup-item select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* ====== Responsive ====== */
+@media (max-width: 768px) {
+  .post-popup-box {
+    flex-direction: column;
+    width: 95%;
+  }
+  .post-popup-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    box-shadow: none;
+    gap: 10px;
+  }
+}
+
+/* ====== Dropdown trạm ====== */
+.station-search-box {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+.station-search-input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.station-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 100%;
+  max-height: 200px; /* giới hạn dropdown */
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: 2px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.station-dropdown-item {
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.station-dropdown-item:hover {
+  background: #f1f1f1;
+}
+
+.station-dropdown.empty {
+  padding: 8px 10px;
+  color: #888;
+}

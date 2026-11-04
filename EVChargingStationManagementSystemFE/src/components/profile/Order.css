@@ -1,0 +1,127 @@
+/* ====== Layout tổng ====== */
+.order-history-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+}
+
+.order-history-content {
+  width: 100%;
+  max-width: 800px;
+}
+
+/* ====== Thanh tiêu đề + tìm kiếm ====== */
+.order-history-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.order-history-topbar h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.order-history-topbar input {
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  width: 220px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.order-history-topbar input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+/* ====== Danh sách đơn hàng ====== */
+.order-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-history-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-history-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.order-history-id {
+  color: #ff6b00;
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+/* ====== Nội dung đơn hàng ====== */
+.order-history-info p {
+  margin: 5px 0;
+  color: #333;
+  font-size: 15px;
+}
+.order-history-list p{
+  color:black;
+}
+
+/* ====== Trạng thái ====== */
+
+
+.order-history-info .scheduled {
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 8px;
+  color: #3b82f6;
+}
+
+.order-history-info .completed {
+
+  font-weight: 600;
+  font-size: 15px;
+  color:#16a34a;;
+
+}
+
+.order-history-info .inprogress {
+
+  font-weight: 600;
+  font-size: 15px;
+  color:#F59E0B;
+
+}
+
+.order-history-info .cancelled {
+  font-weight: 600;
+  font-size: 15px;
+  color:#ef4444;;
+
+}
+
+
+/* ====== Responsive ====== */
+@media (max-width: 600px) {
+  .order-history-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .order-history-topbar input {
+    width: 100%;
+  }
+}

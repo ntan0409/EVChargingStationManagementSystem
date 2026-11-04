@@ -1,0 +1,60 @@
+html,
+body,
+#root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+nav {
+    background: linear-gradient(90deg, #00b09b, #96c93d);
+    /* Gradient effect */
+    padding: 10px 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    margin: 0 15px;
+    display: flex;
+    align-items: center;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+nav ul li a:hover {
+    color: #4581f0;
+    transform: scale(1.1);
+    /* Slight zoom effect on hover */
+}
+
+nav ul li a:active {
+    color: hwb(217 37% 0%);
+}
+
+/* Custom scrollbar for navigation */
+nav scrollbar {
+    width: auto;
+    background-color: #1464f4 #ffffff;
+}

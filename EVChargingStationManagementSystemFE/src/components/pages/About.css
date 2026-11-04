@@ -1,0 +1,52 @@
+/* Đặt kiểu dáng chung cho toàn bộ trang */
+.about-container {
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tiêu đề chính */
+.about-container h1 {
+    font-size: 2rem;
+    color: #007BFF;
+    margin-bottom: 20px;
+}
+
+/* Tiêu đề phụ */
+.about-container h2 {
+    font-size: 1.5rem;
+    color: #0056b3;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* Đoạn văn bản */
+.about-container p {
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+/* Danh sách */
+.about-container ul {
+    padding-left: 20px;
+    margin-bottom: 20px;
+}
+
+.about-container ul li {
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+/* Liên kết */
+.about-container a {
+    color: #007BFF;
+    text-decoration: none;
+}
+
+.about-container a:hover {
+    text-decoration: underline;
+}

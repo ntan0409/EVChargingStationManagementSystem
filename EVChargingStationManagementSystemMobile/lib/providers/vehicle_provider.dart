@@ -77,17 +77,14 @@ class VehicleProvider extends ChangeNotifier {
   }
 
   Future<void> fetchVehicles() async {
-    if (_disposed || _isLoading) return;
-    final epoch = _epoch;
+    if (_disposed) return;
     final selectedId = _selectedVehicle?.id;
     _isLoading = true;
     _errorMessage = null;
-    _vehicles = [];
-    _selectedVehicle = null;
     _notify();
     try {
       final response = await _vehicleService.getMyVehicleModels();
-      if (_disposed || epoch != _epoch) return;
+      if (_disposed) return;
       if (response.success && response.data != null) {
         _vehicles = response.data!;
         _selectedVehicle =
@@ -97,11 +94,11 @@ class VehicleProvider extends ChangeNotifier {
         _errorMessage = response.message;
       }
     } catch (_) {
-      if (!_disposed && epoch == _epoch) {
+      if (!_disposed) {
         _errorMessage = 'Không tải được xe trong hồ sơ.';
       }
     } finally {
-      if (!_disposed && epoch == _epoch) {
+      if (!_disposed) {
         _isLoading = false;
         _notify();
       }

@@ -1,0 +1,245 @@
+/* MyVehicles.css */
+.my-vehicles-container {
+  width: 90%;
+  max-width: 56rem; /* ~900px */
+  margin: 2rem auto;
+  padding: 2rem;
+  border: 0.125rem solid #ddd;
+  border-radius: 1rem;
+  background: #f9f9f9;
+}
+
+.my-vehicles-container h2 {
+  color: #333;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.vehicle-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.vehicle-card img {
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.vehicle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+
+.vehicle-info label {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color:black;
+}
+
+.vehicle-info select {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid #ccc;
+}
+.vehicle-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.confirm-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.confirm-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Container Thêm/Xóa xe nằm ngang */
+.vehicle-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  width: 100%;
+  flex-wrap: wrap; /* responsive: xuống dòng nếu cần */
+}
+
+.vehicle-buttons button {
+  flex: 1 1 45%; /* mỗi button chiếm ~45% container */
+  padding: 0.75rem 0;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Button Thêm xe - xanh lá */
+.add-vehicle-btn {
+  background-color: #28a745;
+  color: #fff;
+}
+.add-vehicle-btn:hover {
+  background-color: #218838;
+}
+
+/* Button Xóa xe - đỏ */
+.delete-vehicle-btn {
+  background-color: #dc3545;
+  color: #fff;
+}
+.delete-vehicle-btn:hover {
+  background-color: #c82333;
+}
+
+/* ===== Popup thêm xe ===== */
+.vehicle-popup-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.vehicle-popup {
+  background: #fff;
+  padding: 2rem 1.5rem;
+  border-radius: 1rem;
+  width: 26rem;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.25);
+  animation: vehicle-popup-fade 0.25s ease-out;
+}
+
+.vehicle-popup h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  text-align: center;
+  color: #222;
+}
+
+.vehicle-popup label {
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 0.25rem;
+}
+
+.vehicle-popup input {
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid #ccc;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.625rem;
+}
+
+/* Nút Lưu + Hủy popup */
+.vehicle-popup-actions {
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.vehicle-popup-actions button {
+  flex: 1;
+  padding: 0.625rem 0;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.vehicle-popup-actions button[type="submit"] {
+  background: #28a745;
+  color: #fff;
+}
+.vehicle-popup-actions button[type="submit"]:hover {
+  background: #218838;
+}
+
+.vehicle-popup-actions button[type="button"] {
+  background: #ccc;
+  color: #333;
+}
+.vehicle-popup-actions button[type="button"]:hover {
+  background: #bbb;
+}
+
+/* Hiệu ứng popup */
+@keyframes vehicle-popup-fade {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Responsive: màn hình nhỏ */
+@media (max-width: 480px) {
+  .vehicle-buttons button {
+    flex: 1 1 100%;
+  }
+  .vehicle-popup {
+    width: 90%;
+  }
+  .vehicle-image {
+    max-width: 100%;
+  }
+}
+.toast-message {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #28a745;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  animation: fadeInOut 2.5s ease;
+  z-index: 1000;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  10%, 90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+

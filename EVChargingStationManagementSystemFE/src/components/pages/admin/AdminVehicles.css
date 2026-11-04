@@ -1,0 +1,491 @@
+/* AdminVehicles.css */
+.admin-vehicles {
+    padding: 1rem;
+    background: #ffffff;
+    min-height: 100vh;
+}
+
+.admin-vehicles .header {
+    margin-bottom: 1.5rem;
+}
+
+.admin-vehicles .header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.admin-vehicles .header p {
+    color: #6b7280;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Stats Cards */
+.admin-vehicles .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-vehicles .stat-card {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-vehicles .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00b09b, #96c93d);
+    border-radius: 20px 20px 0 0;
+}
+
+.admin-vehicles .stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.admin-vehicles .stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.admin-vehicles .stat-label {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+/* Actions Card */
+.admin-vehicles .actions-card {
+    margin-bottom: 1.5rem;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-vehicles .actions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+@media (min-width: 640px) {
+    .admin-vehicles .actions-container {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.admin-vehicles .search-container {
+    flex: 1;
+    max-width: 28rem;
+}
+
+.admin-vehicles .add-btn {
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .admin-vehicles .add-btn {
+        width: auto;
+    }
+}
+
+/* Table Card */
+.admin-vehicles .table-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Vehicle Info Cell */
+.admin-vehicles .vehicle-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-vehicles .vehicle-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: linear-gradient(135deg, #00b09b, #96c93d);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.admin-vehicles .vehicle-details .vehicle-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.admin-vehicles .vehicle-details .plate-number {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Battery Capacity */
+.admin-vehicles .battery-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-vehicles .battery-icon {
+    color: #10b981;
+}
+
+/* Connector Type */
+.admin-vehicles .connector-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.admin-vehicles .connector-tag.blue {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.admin-vehicles .connector-tag.green {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.admin-vehicles .connector-tag.orange {
+    background-color: #fed7aa;
+    color: #9a3412;
+}
+
+/* Owner Info */
+.admin-vehicles .owner-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-vehicles .owner-icon {
+    color: #3b82f6;
+}
+
+/* Status Tags */
+.admin-vehicles .status-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.admin-vehicles .status-tag.green {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.admin-vehicles .status-tag.red {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Action Buttons */
+.admin-vehicles .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.admin-vehicles .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-vehicles .action-btn.edit {
+    background: linear-gradient(135deg, #00b09b, #96c93d);
+    color: white;
+}
+
+.admin-vehicles .action-btn.edit:hover {
+    background: linear-gradient(135deg, #009688, #7cb342);
+    transform: translateY(-2px);
+}
+
+.admin-vehicles .action-btn.delete {
+    background-color: #ef4444;
+    color: white;
+}
+
+.admin-vehicles .action-btn.delete:hover {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+}
+
+/* Modal */
+.admin-vehicles .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-vehicles .modal-icon {
+    color: #00b09b;
+}
+
+.admin-vehicles .form-container {
+    padding: 1rem 0;
+}
+
+.admin-vehicles .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 1rem;
+}
+
+/* Loading State */
+.admin-vehicles .loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: #6b7280;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .admin-vehicles .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-vehicles {
+        padding: 1rem;
+    }
+
+    .admin-vehicles .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .admin-vehicles .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .admin-vehicles .stat-card {
+        padding: 0.75rem;
+    }
+
+    .admin-vehicles .stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-vehicles .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-vehicles .vehicle-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .admin-vehicles .vehicle-icon {
+        width: 2rem;
+        height: 2rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.admin-vehicles .stat-card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.admin-vehicles .stat-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.admin-vehicles .stat-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.admin-vehicles .stat-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.admin-vehicles .stat-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+/* Hover Effects */
+.admin-vehicles .stat-card:hover .stat-value {
+    transform: scale(1.05);
+}
+
+.admin-vehicles .vehicle-icon:hover {
+    transform: scale(1.1);
+}
+
+/* Focus styles for accessibility */
+.admin-vehicles .action-btn:focus {
+    outline: 2px solid #00b09b;
+    outline-offset: 2px;
+}
+
+/* Select dropdown focus */
+.admin-vehicles .ant-select-focused .ant-select-selector {
+    border-color: #00b09b !important;
+    box-shadow: 0 0 0 2px rgba(0, 176, 155, 0.1) !important;
+}
+
+/* Input focus */
+.admin-vehicles .ant-input:focus,
+.admin-vehicles .ant-input-number:focus {
+    border-color: #00b09b !important;
+    box-shadow: 0 0 0 2px rgba(0, 176, 155, 0.1) !important;
+}
+
+/* Table responsive */
+@media (max-width: 768px) {
+
+    .admin-vehicles .ant-table-thead>tr>th,
+    .admin-vehicles .ant-table-tbody>tr>td {
+        padding: 8px 4px;
+        font-size: 0.875rem;
+    }
+}
+
+/* Custom pagination styles */
+.admin-vehicles .ant-pagination {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.admin-vehicles .ant-pagination .ant-pagination-item {
+    border-radius: 0.375rem;
+}
+
+.admin-vehicles .ant-pagination .ant-pagination-item-active {
+    background: linear-gradient(135deg, #00b09b, #96c93d);
+    border-color: #00b09b;
+}
+
+.admin-vehicles .ant-pagination .ant-pagination-item-active a {
+    color: white;
+}
+
+/* Primary buttons - Green gradient */
+.admin-vehicles .ant-btn-primary {
+    background: linear-gradient(135deg, #00b09b, #96c93d) !important;
+    border: none !important;
+    transition: all 0.3s ease !important;
+}
+
+.admin-vehicles .ant-btn-primary:hover {
+    background: linear-gradient(135deg, #009688, #7cb342) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 176, 155, 0.3) !important;
+}
+
+.admin-vehicles .ant-btn-primary:disabled {
+    background: #d1d5db !important;
+    transform: none !important;
+}
+
+/* Default buttons */
+.admin-vehicles .ant-btn-default:hover {
+    border-color: #00b09b !important;
+    color: #00b09b !important;
+}
+
+/* Modal buttons - Higher specificity */
+.ant-modal .ant-modal-footer .ant-btn-primary,
+.admin-vehicles .ant-modal .ant-btn-primary,
+.ant-modal-wrap .ant-modal .ant-btn-primary {
+    background: linear-gradient(135deg, #00b09b, #96c93d) !important;
+    border: none !important;
+    color: white !important;
+}
+
+.ant-modal .ant-modal-footer .ant-btn-primary:hover,
+.admin-vehicles .ant-modal .ant-btn-primary:hover,
+.ant-modal-wrap .ant-modal .ant-btn-primary:hover {
+    background: linear-gradient(135deg, #009688, #7cb342) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 176, 155, 0.3) !important;
+}
+
+.ant-modal .ant-modal-footer .ant-btn-default:hover,
+.admin-vehicles .ant-modal .ant-btn-default:hover {
+    border-color: #00b09b !important;
+    color: #00b09b !important;
+}
+
+/* Modal OK button */
+.ant-modal-confirm .ant-btn-primary {
+    background: linear-gradient(135deg, #00b09b, #96c93d) !important;
+    border: none !important;
+}
+
+.ant-modal-confirm .ant-btn-primary:hover {
+    background: linear-gradient(135deg, #009688, #7cb342) !important;
+}
+
+/* Override Ant Design default pink/red */
+.ant-modal-footer .ant-btn-primary {
+    background: linear-gradient(135deg, #00b09b, #96c93d) !important;
+    border-color: transparent !important;
+}
+
+.ant-modal-footer .ant-btn-primary:hover,
+.ant-modal-footer .ant-btn-primary:focus {
+    background: linear-gradient(135deg, #009688, #7cb342) !important;
+    border-color: transparent !important;
+}

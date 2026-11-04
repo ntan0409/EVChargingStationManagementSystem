@@ -1,4 +1,4 @@
-﻿using BusinessLogic.IServices;
+using BusinessLogic.IServices;
 using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Mail;
@@ -12,15 +12,27 @@ namespace BusinessLogic.Services
         {
             try
             {
-                var port = int.Parse(_config["EmailSettings:Port"]);
-                using SmtpClient client = new(_config["EmailSettings:Host"], port)
+                var host = _config["EmailSettings:Host"];
+                var portStr = _config["EmailSettings:Port"];
+                if (string.IsNullOrWhiteSpace(host) || !int.TryParse(portStr, out var port))
                 {
-                    Credentials = new NetworkCredential(_config["EmailSettings:Username"], _config["EmailSettings:Password"]),
-                    EnableSsl = bool.Parse(_config["EmailSettings:EnableSSL"])
+                    Console.WriteLine($"[EmailService] Cảnh báo: EmailSettings chưa được cấu hình Host/Port. Bỏ qua việc gửi email tới {toEmail}.");
+                    return;
+                }
+
+                var username = _config["EmailSettings:Username"] ?? "";
+                var password = _config["EmailSettings:Password"] ?? "";
+                var fromEmail = _config["EmailSettings:From"] ?? "no-reply@evcharging.vn";
+                bool.TryParse(_config["EmailSettings:EnableSSL"], out var enableSsl);
+
+                using SmtpClient client = new(host, port)
+                {
+                    Credentials = new NetworkCredential(username, password),
+                    EnableSsl = enableSsl
                 };
                 var mail = new MailMessage
                 {
-                    From = new MailAddress(_config["EmailSettings:From"], "EV Charging Station Management System"),
+                    From = new MailAddress(fromEmail, "EV Charging Station Management System"),
                     To = { toEmail },
                     Subject = subject,
                     Body = htmlMessage,
@@ -31,8 +43,7 @@ namespace BusinessLogic.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending email: {ex.Message}");
-                throw;
+                Console.WriteLine($"[EmailService] Lỗi khi gửi email: {ex.Message}");
             }
         }
     }

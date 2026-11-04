@@ -47,6 +47,8 @@ class ReportModel {
     return {
       'title': title,
       'description': description,
+      'reportType': category.isNotEmpty ? category : 'Khác',
+      'severity': 'Medium',
       'category': category,
       'stationId': stationId,
       if (chargingPostId != null) 'chargingPostId': chargingPostId,

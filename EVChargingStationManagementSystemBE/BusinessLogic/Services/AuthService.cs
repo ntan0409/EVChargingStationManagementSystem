@@ -341,27 +341,72 @@ namespace BusinessLogic.Services
                 await _unitOfWork.EVDriverRepository.CreateAsync(eVDriver);
                 await _unitOfWork.SaveChangesAsync();
             }
-            else if (string.IsNullOrEmpty(user.ProviderUserId))
+            else
             {
-                // Nếu user đã có mà chưa gắn ProviderUserId -> gắn thêm
-                user.ProviderUserId = googleId;
-                user.ProfilePictureUrl = avatar;
-                await _userManager.UpdateAsync(user);
+                var isModified = false;
+                if (string.IsNullOrEmpty(user.ProviderUserId))
+                {
+                    user.ProviderUserId = googleId;
+                    isModified = true;
+                }
+                if (string.IsNullOrEmpty(user.Name) && !string.IsNullOrEmpty(name))
+                {
+                    user.Name = name;
+                    isModified = true;
+                }
+                if (string.IsNullOrEmpty(user.ProfilePictureUrl) && !string.IsNullOrEmpty(avatar))
+                {
+                    user.ProfilePictureUrl = avatar;
+                    isModified = true;
+                }
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    isModified = true;
+                }
+                if (isModified)
+                {
+                    await _userManager.UpdateAsync(user);
+                }
+
+                // Äáº£m báº£o user cÃ³ role EVDriver
+                var roles = await _userManager.GetRolesAsync(user);
+                if (!roles.Any())
+                {
+                    await _userManager.AddToRoleAsync(user, "EVDriver");
+                }
+
+                // Äáº£m báº£o user cÃ³ EVDriverProfile Ä‘á»ƒ khÃ´ng bá»‹ 404 khi gá»i /api/EVDriver/profile
+                var existingProfile = await _unitOfWork.EVDriverRepository.GetByIdAsync(d => d.AccountId == user.Id && !d.IsDeleted);
+                if (existingProfile == null)
+                {
+                    EVDriverProfile eVDriver = new()
+                    {
+                        Id = Guid.NewGuid(),
+                        AccountId = user.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    await _unitOfWork.EVDriverRepository.CreateAsync(eVDriver);
+                    await _unitOfWork.SaveChangesAsync();
+                }
             }
 
             user.LastLogin = DateTime.Now;
             await _userManager.UpdateAsync(user);
 
-            // Tạo JWT token
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            // Táº¡o JWT token
             var authClaims = new List<Claim>
             {
                 new("userId", user.Id.ToString()),
-                new("email", user.Email),
-                new("name", user.Name),
+                new("email", user.Email ?? email ?? ""),
+                new("name", user.Name ?? name ?? ""),
+                new("avatar", user.ProfilePictureUrl ?? avatar ?? ""),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
 
-            var userRoles = await _userManager.GetRolesAsync(user);
             foreach (var role in userRoles)
                 authClaims.Add(new Claim("role", role));
 
@@ -390,7 +435,15 @@ namespace BusinessLogic.Services
                 new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
+                    expiration = token.ValidTo,
+                    user = new
+                    {
+                        id = user.Id,
+                        name = user.Name ?? name,
+                        email = user.Email ?? email,
+                        avatar = user.ProfilePictureUrl ?? avatar,
+                        role = userRoles.FirstOrDefault() ?? "EVDriver"
+                    }
                 }
             );
         }

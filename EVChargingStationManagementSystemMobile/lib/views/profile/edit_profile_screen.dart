@@ -76,16 +76,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 46,
-                      backgroundColor: AppColors.primary.withOpacity(0.15),
-                      child: Text(
-                        user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withOpacity(0.15),
+                      ),
+                      child: ClipOval(
+                        child: (user?.avatar != null &&
+                                user!.avatar!.trim().isNotEmpty)
+                            ? Image.network(
+                                user.avatar!.trim(),
+                                width: 92,
+                                height: 92,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Center(
+                                  child: Text(
+                                    user != null && user.name.isNotEmpty
+                                        ? user.name.characters.first
+                                            .toUpperCase()
+                                        : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  user != null && user.name.isNotEmpty
+                                      ? user.name.characters.first
+                                          .toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                     Positioned(

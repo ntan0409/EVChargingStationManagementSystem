@@ -29,7 +29,7 @@ class ApiConstants {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(keyCustomBaseUrl);
     try {
-      _currentBaseUrl = normalizeBaseUrl(saved ?? defaultBaseUrl);
+      _currentBaseUrl = normalizeBaseUrl(_environmentUrl.isNotEmpty ? _environmentUrl : saved ?? defaultBaseUrl);
     } on FormatException {
       _currentBaseUrl = '';
       if (saved != null) {

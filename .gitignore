@@ -54,6 +54,6 @@ app.*.map.json
 *.suo
 *.userprefs
 
-# Configuration & Secrets
-**/appsetting*.json
-**/appsettings*.json
+# Local team settings
+.env.local
+appsettings.Local.json

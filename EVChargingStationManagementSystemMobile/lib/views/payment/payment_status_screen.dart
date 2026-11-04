@@ -131,7 +131,11 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
               ),
             ),
             ListTile(
-              title: const Text('Mã tham chiếu'),
+              title: Text(
+                quote.payment?.paymentMethod == 'SePayTest'
+                    ? 'Nội dung giao dịch mô phỏng SePay'
+                    : 'Mã tham chiếu',
+              ),
               subtitle: SelectableText(
                 quote.payment?.transactionCode ?? 'Chưa được cấp',
               ),
@@ -144,12 +148,11 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
                 ),
               ),
           ],
-          SelectableText('Phiên: ${widget.sessionId}'),
           const SizedBox(height: 16),
           Text(
             paid
                 ? 'Máy chủ đã xác nhận hoàn tất hóa đơn.'
-                : 'Chưa được coi là đã thanh toán. Với tiền mặt, cần nhân viên xác nhận đã nhận tiền. Với VNPay, chờ kết quả được backend xác minh.',
+                : 'Chưa được coi là đã thanh toán. Với tiền mặt, cần nhân viên xác nhận đã nhận tiền. Với SePay Test Mode, tạo giao dịch mô phỏng đúng số tiền và nội dung ở trên.',
           ),
           const SizedBox(height: 20),
           OutlinedButton(

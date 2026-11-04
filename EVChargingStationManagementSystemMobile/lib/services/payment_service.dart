@@ -28,18 +28,20 @@ class PaymentService {
         },
       );
 
-  Future<ApiResponse<PaymentModel>> createPaymentOffline(String sessionId) =>
-      _apiClient.post(
-        ApiConstants.paymentOffline,
-        queryParameters: {'sessionId': sessionId},
-        fromJson: (value) {
-          final payment = PaymentModel.fromJson(contractMap(value));
-          if (payment.sessionId.toLowerCase() != sessionId.toLowerCase()) {
-            throw const FormatException('Wrong payment session');
-          }
-          return payment;
-        },
-      );
+  Future<ApiResponse<PaymentModel>> createPaymentOffline(
+    String sessionId, {
+    bool sePay = false,
+  }) => _apiClient.post(
+    sePay ? '/Payment/sepay-test' : ApiConstants.paymentOffline,
+    queryParameters: {'sessionId': sessionId},
+    fromJson: (value) {
+      final payment = PaymentModel.fromJson(contractMap(value));
+      if (payment.sessionId.toLowerCase() != sessionId.toLowerCase()) {
+        throw const FormatException('Wrong payment session');
+      }
+      return payment;
+    },
+  );
 
   Future<ApiResponse<SessionPaymentModel>> getSessionPayment(
     String sessionId,

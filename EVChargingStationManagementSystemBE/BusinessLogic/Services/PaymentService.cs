@@ -32,9 +32,20 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         url.AbsolutePath.Equals(path, StringComparison.OrdinalIgnoreCase) &&
         url.UserInfo.Length == 0 && url.Query.Length == 0 && url.Fragment.Length == 0;
 
+    private const string SePayMethod = "SePayTest";
+    private static readonly HttpClient SePayHttp = new(new HttpClientHandler { AllowAutoRedirect = false })
+    {
+        Timeout = TimeSpan.FromSeconds(4)
+    };
+
+    private bool SePayConfigured => config["SePay:Enabled"] == "true" &&
+        db.Database.GetDbConnection().Database == "EVCSMS_TeamDemo" &&
+        !string.IsNullOrWhiteSpace(config["SePay:TestToken"]) &&
+        !string.IsNullOrWhiteSpace(config["SePay:TestBankAccountId"]);
+
     public IServiceResult GetMethods() => Ok(new[]
     {
-        new { id = "VNPay", name = "VNPAY Sandbox (kiểm thử)", available = GatewayConfigured },
+        new { id = "SePayTest", name = "SePay Test Mode", available = SePayConfigured },
         new { id = "Offline", name = "Thanh toán tại quầy (chờ nhân viên xác nhận)", available = true }
     });
 
@@ -56,6 +67,27 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         if (session == null) return Missing();
         var payment = await db.Set<Payment>().AsNoTracking().Where(p => !p.IsDeleted && p.ChargingSessionId == sessionId)
             .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
+        if (SePayConfigured && payment is { PaymentMethod: SePayMethod, Status: "Initiated" } &&
+            payment.PaidBy == accountId && session.Status == "Completed" &&
+            await FindSePayTransfer(payment))
+        {
+            await DatabaseWork.Write(db, async () =>
+            {
+                var pending = await db.Set<Payment>().FirstOrDefaultAsync(p =>
+                    p.Id == payment.Id && p.ChargingSessionId == sessionId && p.PaidBy == accountId &&
+                    p.PaymentMethod == SePayMethod && p.Status == "Initiated" && !p.IsDeleted);
+                var active = await db.ChargingSessions.Include(s => s.Connector).FirstOrDefaultAsync(s =>
+                    s.Id == sessionId && s.UserId == accountId && s.Status == "Completed" && !s.IsDeleted);
+                if (pending == null || active == null || pending.Amount != payment.Amount ||
+                    pending.TxnRef != payment.TxnRef || await db.Transactions.AnyAsync(t => t.PaymentId == pending.Id))
+                    return Fail("Yêu cầu thanh toán đã thay đổi.");
+                await Settle(pending, active, "OnlinePayment", "SePay Test Mode confirmation");
+                await db.SaveChangesAsync();
+                return Ok(pending.Id);
+            });
+            session = await db.ChargingSessions.AsNoTracking().SingleAsync(s => s.Id == sessionId);
+            payment = await db.Set<Payment>().AsNoTracking().SingleAsync(p => p.Id == payment.Id);
+        }
         var tax = payment?.TaxRate ?? await TaxRate();
         if (tax == null) return Fail("Máy chủ chưa cấu hình thuế VAT hợp lệ.");
         return Ok(new SessionPaymentDto
@@ -67,10 +99,49 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         });
     }
 
+    private async Task<bool> FindSePayTransfer(Payment payment)
+    {
+        var accountId = config["SePay:TestBankAccountId"]!;
+        var code = Uri.EscapeDataString(payment.TxnRef);
+        var amount = payment.Amount.ToString("0", CultureInfo.InvariantCulture);
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            $"https://userapi-sandbox.sepay.vn/v2/transactions?bank_account_id={Uri.EscapeDataString(accountId)}&transaction_content={code}&transfer_type=in&amount_in_min={amount}&amount_in_max={amount}&timestamp_format=iso8601");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", config["SePay:TestToken"]);
+        try
+        {
+            using var response = await SePayHttp.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return false;
+            using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            if (!payload.RootElement.TryGetProperty("data", out var rows) || rows.ValueKind != JsonValueKind.Array)
+                return false;
+            var earliest = new DateTimeOffset(payment.CreatedAt).AddSeconds(-1);
+            return rows.EnumerateArray().Any(row =>
+                row.TryGetProperty("bank_account_id", out var account) &&
+                string.Equals(account.ToString(), accountId, StringComparison.OrdinalIgnoreCase) &&
+                row.TryGetProperty("transaction_content", out var content) &&
+                string.Equals(content.ToString().Trim(), payment.TxnRef, StringComparison.OrdinalIgnoreCase) &&
+                row.TryGetProperty("transaction_date", out var date) &&
+                DateTimeOffset.TryParse(date.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var occurred) &&
+                occurred >= earliest &&
+                row.TryGetProperty("amount_in", out var incoming) &&
+                decimal.TryParse(incoming.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var received) &&
+                received == payment.Amount &&
+                row.TryGetProperty("amount_out", out var outgoing) &&
+                decimal.TryParse(outgoing.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var sent) && sent == 0);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return false;
+        }
+    }
+
+    public Task<IServiceResult> CreateSePayPayment(Guid sessionId, Guid accountId) =>
+        Create(sessionId, accountId, false, sePay: true);
+
     public Task<IServiceResult> CreatePaymentURL(Guid sessionId, Guid? accountId = null) => Create(sessionId, accountId, false);
     public Task<IServiceResult> CreatePaymentOfflineRecord(Guid sessionId, Guid? accountId = null) => Create(sessionId, accountId, true);
 
-    private Task<IServiceResult> Create(Guid sessionId, Guid? accountId, bool offline) => DatabaseWork.Write(db, async () =>
+    private Task<IServiceResult> Create(Guid sessionId, Guid? accountId, bool offline, bool sePay = false) => DatabaseWork.Write(db, async () =>
     {
         if (accountId == null) return Fail("Cần đăng nhập tài xế để tạo thanh toán.");
         var session = await db.ChargingSessions.Include(s => s.ChargingPost).ThenInclude(p => p.ChargingStationNavigation)
@@ -85,10 +156,11 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
             .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
         var tax = previous?.TaxRate ?? await TaxRate();
         if (tax == null || session.Cost < 0) return Fail("Hóa đơn hoặc thuế máy chủ chưa hợp lệ.");
-        if (!offline && !GatewayConfigured) return Fail("VNPay chưa được cấu hình trên máy chủ.");
+        if (sePay && !SePayConfigured) return Fail("SePay Test Mode chưa được cấu hình.");
+        if (!offline && !sePay && !GatewayConfigured) return Fail("VNPay chưa được cấu hình trên máy chủ.");
         var beforeVat = previous?.BeforeVatAmount ?? session.Cost;
         var amount = previous?.Amount ?? Total(beforeVat, tax.Value);
-        if (!offline && amount <= 0) return Fail("Số tiền không đủ để tạo yêu cầu VNPay.");
+        if (!offline && amount <= 0) return Fail("Số tiền không đủ để tạo yêu cầu thanh toán online.");
         var operatorId = session.ChargingPost.ChargingStationNavigation.OperatorId;
         if (offline && (operatorId == null || operatorId == Guid.Empty))
             return Fail("Trạm chưa có nhân viên nhận thanh toán tại quầy.");
@@ -96,8 +168,8 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         var payment = new Payment
         {
             Id = Guid.NewGuid(), ChargingSessionId = session.Id, PaidBy = accountId,
-            TxnRef = PaymentHelper.GenerateTxnRef(session.Id), TaxRate = tax.Value,
-            BeforeVatAmount = beforeVat, Amount = amount, PaymentMethod = offline ? "OFFLINE" : "VNPaySandbox",
+            TxnRef = sePay ? "EV" + Guid.NewGuid().ToString("N").ToUpperInvariant() : PaymentHelper.GenerateTxnRef(session.Id), TaxRate = tax.Value,
+            BeforeVatAmount = beforeVat, Amount = amount, PaymentMethod = offline ? "OFFLINE" : sePay ? SePayMethod : "VNPaySandbox",
             Status = "Initiated", CreatedAt = now, UpdatedAt = now
         };
         db.Set<Payment>().Add(payment);
@@ -109,6 +181,8 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
             await db.SaveChangesAsync();
             return Ok(payment.Adapt<PaymentViewDetailDto>(), "Đã ghi nhận yêu cầu; đang chờ nhân viên xác nhận, chưa thanh toán.");
         }
+        if (sePay)
+            return Ok(payment.Adapt<PaymentViewDetailDto>(), "Đang chờ giao dịch mô phỏng từ SePay.");
         var parameters = PaymentHelper.CreateVnPayParameters(config["VnPay:TmnCode"]!,
             checked((long)(payment.Amount * 100)), payment.TxnRef, "Thanh toan phien sac EV",
             config["VnPay:ReturnUrl"]!, "127.0.0.1", "vn");

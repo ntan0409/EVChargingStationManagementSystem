@@ -171,14 +171,24 @@ class PaymentProvider extends ChangeNotifier {
     double? amount,
     String? stationName,
     double? energy,
-  ]) async {
+  ]) => _createPendingPayment(sessionId);
+
+  Future<bool> processSePayTest(String sessionId) =>
+      _createPendingPayment(sessionId, sePay: true);
+
+  Future<bool> _createPendingPayment(
+    String sessionId, {
+    bool sePay = false,
+  }) async {
     if (_disposed || _isLoading) return false;
     final epoch = _epoch;
     _isLoading = true;
     _errorMessage = null;
     _notify();
     try {
-      final response = await _paymentService.createPaymentOffline(sessionId);
+      final response = sePay
+          ? await _paymentService.createPaymentOffline(sessionId, sePay: true)
+          : await _paymentService.createPaymentOffline(sessionId);
       if (!_active(epoch)) return false;
       if (!response.success ||
           response.data == null ||

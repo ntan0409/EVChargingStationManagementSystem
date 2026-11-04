@@ -6,6 +6,7 @@ namespace Common.DTOs.ChargingSessionDto
 {
     public class ChargingSessionViewDetailDto
     {
+        public bool DemoReadingEnabled { get; set; }
         public Guid Id { get; set; }
         public Guid ChargingPostId { get; set; }
         public Guid ConnectorId { get; set; }

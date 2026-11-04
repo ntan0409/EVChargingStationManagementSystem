@@ -6,10 +6,11 @@ using Infrastructure.Data;
 using Infrastructure.Models;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessLogic.Services;
 
-public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journey) : IChargingSessionService
+public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journey, IConfiguration config) : IChargingSessionService
 {
     public async Task<IServiceResult> GetList()
     {
@@ -22,7 +23,7 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
     {
         var session = await db.ChargingSessions.AsNoTracking().FirstOrDefaultAsync(s =>
             !s.IsDeleted && s.Id == id && (accountId == null || s.UserId == accountId));
-        return Snapshot(session);
+        return await LiveSnapshot(session);
     }
 
     public async Task<IServiceResult> GetByConnector(Guid connectorId, Guid? accountId = null)
@@ -38,7 +39,7 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
         var session = await db.ChargingSessions.AsNoTracking().Where(s => !s.IsDeleted &&
             s.UserId == accountId && (s.Status == "Charging" || s.Status == "Completed"))
             .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync();
-        return Snapshot(session);
+        return await LiveSnapshot(session);
     }
 
     public Task<IServiceResult> Start(ChargingSessionStartDto dto, Guid? accountId = null) =>
@@ -115,20 +116,23 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
                 s.Id == sessionId && !s.IsDeleted && s.UserId == accountId);
             if (session == null) return Missing("Không tìm thấy phiên sạc của bạn.");
             var energy = dto.EnergyDeliveredKWh;
+            if (dto.DemoReading)
+            {
+                if (!DemoEnabled) return Fail("Số đo mô phỏng chỉ dùng trên backend TeamDemo.");
+                if (session.Status == "Completed") return Snapshot(session);
+                energy = DemoEnergy(session, DateTime.Now);
+            }
             if (energy == null || !double.IsFinite(energy.Value) || energy < 0 ||
                 energy > session.BatteryCapacityKWh || energy < session.EnergyDeliveredKWh)
                 return Fail("Số đo điện năng không hợp lệ. Cần số đo thực từ cổng sạc.");
             if (session.Status == "Completed" && session.EnergyDeliveredKWh == energy)
                 return Snapshot(session);
             if (session.Status != "Charging") return Fail("Phiên không ở trạng thái đang sạc.");
-            var price = await db.SystemConfigurations.AsNoTracking().Where(c =>
-                !c.IsDeleted && c.Name == "PRICE_PER_kWH" && c.EffectedDateFrom <= DateTime.Now &&
-                (c.EffectedDateTo == null || c.EffectedDateTo >= DateTime.Now))
-                .OrderByDescending(c => c.EffectedDateFrom).FirstOrDefaultAsync();
-            if (price?.MinValue == null || price.MinValue <= 0)
+            var price = await CurrentPrice();
+            if (price is null or <= 0)
                 return Fail("Máy chủ chưa cấu hình đơn giá điện hợp lệ.");
             session.EnergyDeliveredKWh = energy.Value;
-            session.Cost = decimal.Round((decimal)energy.Value * price.MinValue.Value, 2, MidpointRounding.AwayFromZero);
+            session.Cost = CalculateCost(energy.Value, price.Value);
             session.Status = "Completed";
             session.EndTime = session.UpdatedAt = DateTime.Now;
             session.Connector.Status = "InUse";
@@ -137,9 +141,49 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
             return Snapshot(session);
         });
 
-    private static IServiceResult Snapshot(ChargingSession? session) => session == null
-        ? Missing("Không tìm thấy phiên sạc.")
-        : new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, session.Adapt<ChargingSessionViewDetailDto>());
+    private bool DemoEnabled => config["ChargingDemo:Enabled"] == "true" &&
+        db.Database.GetDbConnection().Database == "EVCSMS_TeamDemo";
+
+    private static double DemoEnergy(ChargingSession session, DateTime now)
+    {
+        if (session.StartTime == null || session.BatteryCapacityKWh <= 0)
+            return session.EnergyDeliveredKWh;
+
+        var elapsed = now - session.StartTime.Value;
+        var estimate = Math.Clamp(elapsed.TotalHours * 12, 0, session.BatteryCapacityKWh);
+        return Math.Max(Math.Round(estimate, 2), session.EnergyDeliveredKWh);
+    }
+
+    private Task<decimal?> CurrentPrice()
+    {
+        var now = DateTime.Now;
+        return db.SystemConfigurations.AsNoTracking().Where(c =>
+            !c.IsDeleted && c.Name == "PRICE_PER_kWH" && c.EffectedDateFrom <= now &&
+            (c.EffectedDateTo == null || c.EffectedDateTo >= now))
+            .OrderByDescending(c => c.EffectedDateFrom).Select(c => c.MinValue).FirstOrDefaultAsync();
+    }
+
+    private static decimal CalculateCost(double energy, decimal price) =>
+        decimal.Round((decimal)energy * price, 2, MidpointRounding.AwayFromZero);
+
+    private async Task<IServiceResult> LiveSnapshot(ChargingSession? session)
+    {
+        if (session?.Status != "Charging" || !DemoEnabled) return Snapshot(session);
+        // The callers use AsNoTracking. Only Stop persists the final reading.
+        session.EnergyDeliveredKWh = DemoEnergy(session, DateTime.Now);
+        var price = await CurrentPrice();
+        if (price is > 0)
+            session.Cost = CalculateCost(session.EnergyDeliveredKWh, price.Value);
+        return Snapshot(session);
+    }
+
+    private IServiceResult Snapshot(ChargingSession? session)
+    {
+        if (session == null) return Missing("Không tìm thấy phiên sạc.");
+        var detail = session.Adapt<ChargingSessionViewDetailDto>();
+        detail.DemoReadingEnabled = DemoEnabled;
+        return new ServiceResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, detail);
+    }
     private static IServiceResult Fail(string message) => new ServiceResult(Const.FAIL_UPDATE_CODE, message);
     private static IServiceResult Missing(string message) => new ServiceResult(Const.WARNING_NO_DATA_CODE, message);
 }

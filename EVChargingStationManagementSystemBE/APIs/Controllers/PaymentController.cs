@@ -24,6 +24,11 @@ public class PaymentController(IPaymentService service) : ControllerBase
     [Authorize(Roles = "EVDriver")]
     public async Task<IActionResult> CreatePaymentURL([FromQuery] Guid sessionId) => Result(await service.CreatePaymentURL(sessionId, User.GetUserId()));
 
+    [HttpPost("sepay-test")]
+    [Authorize(Roles = "EVDriver")]
+    public async Task<IActionResult> CreateSePayPayment([FromQuery] Guid sessionId) =>
+        Result(await service.CreateSePayPayment(sessionId, User.GetUserId()));
+
     [HttpPost("offline")]
     [Authorize(Roles = "EVDriver")]
     public async Task<IActionResult> CreatePaymentOfflineRecord([FromQuery] Guid sessionId) => Result(await service.CreatePaymentOfflineRecord(sessionId, User.GetUserId()));

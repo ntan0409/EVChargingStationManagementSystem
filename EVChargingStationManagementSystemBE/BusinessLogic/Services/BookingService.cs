@@ -12,10 +12,11 @@ using Infrastructure.Models;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessLogic.Services
 {
-    public class BookingService(IUnitOfWork unitOfWork, UserManager<UserAccount> userManager, ICheckInCodeService checkInCodeService, Infrastructure.Data.EVCSMSContext db, DriverJourneyService journey) : IBookingService
+    public class BookingService(IUnitOfWork unitOfWork, UserManager<UserAccount> userManager, ICheckInCodeService checkInCodeService, Infrastructure.Data.EVCSMSContext db, DriverJourneyService journey, IConfiguration config) : IBookingService
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly UserManager<UserAccount> _userManager = userManager;
@@ -119,6 +120,9 @@ namespace BusinessLogic.Services
                     if (booking.ConnectorNavigation.Status is "Faulted" or "OutOfService" or "Unknown")
                         return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng không hoạt động, chưa thể check-in.");
                     booking.ConnectorNavigation.IsLocked = false;
+                    if (config["ChargingDemo:Enabled"] == "true" &&
+                        db.Database.GetDbConnection().Database == "EVCSMS_TeamDemo")
+                        booking.ConnectorNavigation.IsPluggedIn = true;
                     booking.ConnectorNavigation.Status = booking.ConnectorNavigation.IsPluggedIn ? "InUse" : "Preparing";
                 }
 

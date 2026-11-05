@@ -25,7 +25,7 @@ Backend tự tạo database **EVCSMS_TeamDemo**, apply migration và seed bản 
 ## Luồng demo chính (không cần trụ sạc thật)
 
 1. Đăng nhập Google hoặc email demo.
-2. Nếu app yêu cầu: hoàn tất tên, số điện thoại hợp lệ và chọn xe trong catalog (ưu tiên VinFast). Nút xác nhận ở cuối màn hình cố định.
+2. Nếu app yêu cầu: nhập tên và số điện thoại hợp lệ, bấm **Tiếp tục chọn xe**, chọn xe trong catalog (ưu tiên VinFast), rồi **Xác nhận xe và lưu hồ sơ**. Nút xác nhận cố định ở cuối màn hình.
 3. Chọn **Đặt lịch sạc**, chọn trạm đang hoạt động và xe trong hồ sơ. Đặt giờ cách hiện tại ít nhất **5 phút** (ví dụ +6 phút); có thể check-in từ 15 phút trước giờ đặt. Không chọn trạm bảo trì.
 4. Vào **Lịch đặt**, mở lịch vừa tạo và dùng **Mã Check-in**. Tiếp tục tới cổng được cấp cho đúng lịch/xe; không lấy GUID của cổng khác để thử.
 5. Chọn **Bắt đầu sạc**. Chế độ demo tự mô phỏng cắm xe sau check-in; không sửa trạng thái SQL bằng tay. Nếu chưa sẵn sàng, bấm Thử lại và kiểm tra lịch/xe/cổng.
@@ -67,6 +67,17 @@ Flutter Phase hiện tại dành cho tài xế; không đăng nhập Staff vào 
 - Quét QR: quét GUID thật của cổng; nếu emulator không quét được, dùng **Tiếp tục tới cổng sạc** từ lịch đã check-in. Nhập mã cổng chỉ là lựa chọn bổ sung.
 - Voucher/điểm: xem danh sách, đổi khi đủ điểm, áp dụng trước payment; điểm có thể bằng 0 trên database mới.
 - Hồ sơ/lịch sử: thông tin và giao dịch thuộc người đang đăng nhập. Các mục chưa có dữ liệu hiển thị rỗng; seed không tạo giao dịch Paid mẫu.
+
+## Web quản trị của nhóm (tùy chọn)
+
+Repository cũng có `EVChargingStationManagementSystemFE` sau khi hợp nhất main của nhóm.
+Cài Node.js (đã build với 20.20.2), mở Backend bằng launcher như trên, rồi từ thư mục gốc chạy:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_web_admin.ps1
+```
+
+Script cài dependencies khi chưa có, mở Vite tại `http://localhost:5173` và lấy Google Client ID công khai từ cùng file cấu hình của nhóm. Không truyền JWT signing key hoặc payment secret sang web. Không cần chạy web quản trị nếu chỉ demo Android. Các luồng web từ main của nhóm được giữ lại; việc build web không thay cho kiểm thử nghiệp vụ trên web.
 
 ## Khi gặp lỗi
 

@@ -7,6 +7,12 @@ try {
     if (!(Test-Path -LiteralPath 'appsettings.Local.json')) {
         throw 'Place appsettings.Local.json next to RUN_DEMO.cmd first.'
     }
+    $settings = Get-Content -LiteralPath 'appsettings.Local.json' -Raw | ConvertFrom-Json
+    $googleClient = $settings.Authentication.Google.ClientId
+    if (!$googleClient) { $googleClient = @($settings.Authentication.Google.AllowedClientIds)[0] }
+    if (!$googleClient -or $googleClient -notmatch '^[a-zA-Z0-9._-]+\.apps\.googleusercontent\.com$') {
+        throw 'The shared configuration must include a valid Google ClientId.'
+    }
 
     function Test-Backend {
         try {
@@ -72,11 +78,11 @@ try {
     try {
         $files = @(& git ls-files --cached --others --exclude-standard -- lib android pubspec.yaml pubspec.lock)
         if ($LASTEXITCODE -or !$files.Count) { throw 'Cannot inspect Flutter source files.' }
-        $fingerprint = ($files | Sort-Object -Unique | ForEach-Object {
+        $fingerprint = "GoogleWebClientId=$googleClient`n" + (($files | Sort-Object -Unique | ForEach-Object {
             if (Test-Path -LiteralPath $_ -PathType Leaf) {
                 "$_ $((Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash)"
             }
-        }) -join "`n"
+        }) -join "`n")
         $apk = Join-Path $mobile 'build/app/outputs/flutter-apk/app-debug.apk'
         $sourceStamp = Join-Path $cache 'apk-source.txt'
         $apkStamp = Join-Path $cache 'apk-sha256.txt'
@@ -87,7 +93,7 @@ try {
         }
         if ($needsBuild) {
             Write-Host 'Preparing APK because source changed or no cached APK exists...'
-            & flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:5058/api
+            & flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:5058/api "--dart-define=GOOGLE_WEB_CLIENT_ID=$googleClient"
             if ($LASTEXITCODE) { throw 'Flutter build failed.' }
             $apkHash = (Get-FileHash -LiteralPath $apk).Hash
             [IO.File]::WriteAllText($sourceStamp, $fingerprint)

@@ -31,28 +31,32 @@ class BookingProvider extends ChangeNotifier {
     Future.microtask(_notify);
   }
 
-  Future<void> fetchMyBookings() async {
-    if (_disposed || _isLoading) return;
+  Future<void> fetchMyBookings({bool silent = false}) async {
+    if (_disposed) return;
+    if (_isLoading && !silent) return;
     final epoch = _epoch;
-    _isLoading = true;
-    _errorMessage = null;
-    _bookings = [];
-    _notify();
+    if (!silent) {
+      _isLoading = true;
+      _errorMessage = null;
+      _bookings = [];
+      _notify();
+    }
     try {
       final result = await _bookingService.getMyBookings();
       if (_disposed || epoch != _epoch) return;
       if (result.success && result.data != null) {
         _bookings = result.data!;
-      } else {
+        _errorMessage = null;
+      } else if (!silent) {
         _errorMessage = result.message;
       }
     } catch (_) {
-      if (!_disposed && epoch == _epoch) {
+      if (!_disposed && epoch == _epoch && !silent) {
         _errorMessage = 'Không tải được lịch đặt.';
       }
     } finally {
       if (!_disposed && epoch == _epoch) {
-        _isLoading = false;
+        if (!silent) _isLoading = false;
         _notify();
       }
     }

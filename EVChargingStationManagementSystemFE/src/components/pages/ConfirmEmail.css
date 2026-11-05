@@ -1,0 +1,44 @@
+.confirm-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #fff5f8;
+}
+
+.confirm-card {
+    background: white;
+    padding: 40px 60px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.confirm-loading {
+    font-size: 20px;
+    color: #6b7280;
+}
+
+.confirm-success {
+    font-size: 26px;
+    color: #16a34a;
+}
+
+.confirm-error {
+    font-size: 26px;
+    color: #dc2626;
+}
+
+.confirm-message {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #374151;
+}
+
+.confirm-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #2563eb;
+    font-weight: 500;
+    text-decoration: underline;
+}

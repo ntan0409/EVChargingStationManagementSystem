@@ -54,7 +54,6 @@ app.*.map.json
 *.suo
 *.userprefs
 
-
 # Local team settings
 .env.local
 appsettings.Local.json
@@ -68,3 +67,8 @@ appsettings.Local.json
 # Backend configuration is shared privately, never committed
 **/appsetting*.json
 **/appsettings*.json
+# Node / Frontend Web
+**/node_modules/
+**/dist/
+
+test_screenshot.png

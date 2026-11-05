@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/vehicle_model.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/utils/validators.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/charging_session_provider.dart';
-import '../../services/vehicle_service.dart';
-import '../widgets/api_problem.dart';
 import '../widgets/custom_button.dart';
+import 'vehicle_selection_screen.dart';
 import '../payment/transaction_history_screen.dart';
-import '../charging/live_charging_screen.dart';
-import '../booking/my_bookings_screen.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
   final List<String>? missingRequirements;
   final VoidCallback? onCompleted;
+
   const ProfileCompletionScreen({
     super.key,
     this.missingRequirements,
     this.onCompleted,
   });
+
   @override
   State<ProfileCompletionScreen> createState() =>
       _ProfileCompletionScreenState();
@@ -25,16 +24,9 @@ class ProfileCompletionScreen extends StatefulWidget {
 
 class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final _form = GlobalKey<FormState>();
-  final _name = TextEditingController(), _phone = TextEditingController();
-  List<VehicleModel> _catalog = [];
-  VehicleModel? _selected;
-  bool _loading = true, _saving = false;
-  String? _error;
-  bool _valid(VehicleModel v) =>
-      v.status == 'Active' &&
-      v.batteryCapacityKWh > 0 &&
-      ['Car', 'Bike'].contains(v.vehicleType) &&
-      v.recommendedChargingPowerKW >= 0;
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -42,8 +34,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       if (mounted) {
         final user = context.read<AuthProvider>().currentUser;
         _name.text = user?.name ?? '';
-        _phone.text = user?.phone ?? '';
-        _load();
+        final currentPhone = user?.phone ?? '';
+        _phone.text = currentPhone.contains('Chưa cập nhật')
+            ? ''
+            : currentPhone;
       }
     });
   }
@@ -55,117 +49,41 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    final auth = context.read<AuthProvider>();
-    final response = await VehicleService(
-      apiClient: auth.apiClient,
-    ).getVehicleModels();
-    if (!mounted) return;
-    setState(() {
-      _loading = false;
-      if (response.success && response.data != null) {
-        _catalog = response.data!;
-        _selected = _catalog
-            .where(
-              (v) =>
-                  _valid(v) && auth.currentUser!.vehicleModelIds.contains(v.id),
-            )
-            .firstOrNull;
-      } else {
-        _error = response.message;
-      }
-    });
-  }
+  void _goToVehicleSelection() {
+    if (!_form.currentState!.validate()) return;
 
-  Future<void> _save() async {
-    if (_saving || !_form.currentState!.validate()) return;
-    final auth = context.read<AuthProvider>();
-    final vehicle = _selected;
-    if (vehicle == null || !_valid(vehicle)) {
-      setState(
-        () => _error =
-            'Chọn xe hợp lệ từ catalog Admin. Xe thiếu thông số phải được Admin cập nhật.',
-      );
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    if (!auth.currentUser!.vehicleModelIds.contains(vehicle.id)) {
-      final saved = await VehicleService(
-        apiClient: auth.apiClient,
-      ).addVehicle(vehicle);
-      if (!mounted) return;
-      if (!saved.success) {
-        setState(() {
-          _saving = false;
-          _error = saved.message;
-        });
-        return;
-      }
-    }
-    final saved = await auth.updateProfile(
-      name: _name.text.trim(),
-      phone: _phone.text.trim(),
-      address: auth.currentUser?.address,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VehicleSelectionScreen(
+          name: _name.text.trim(),
+          phone: _phone.text.trim(),
+          onCompleted: widget.onCompleted,
+        ),
+      ),
     );
-    if (!mounted) return;
-    if (saved && auth.currentUser!.profileCompleted) widget.onCompleted?.call();
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      if (!saved)
-        _error = auth.errorMessage ?? 'Chưa xác nhận lưu hồ sơ.';
-      else if (!auth.currentUser!.profileCompleted)
-        _error =
-            'Máy chủ chưa xác nhận hồ sơ hoàn tất. Kiểm tra email và xe đã chọn.';
-    });
   }
 
   String _reason(String code) => switch (code) {
     'name' => 'Họ và tên',
     'phoneNumber' => 'Số điện thoại',
     'emailVerification' => 'Email đã xác minh',
-    'supportedVehicle' => 'Xe Active với thông số hợp lệ',
+    'supportedVehicle' => 'Phương tiện hợp lệ',
     'accountInactive' => 'Tài khoản/hồ sơ đang bị khóa',
-    _ => 'Hồ sơ trên máy chủ',
+    _ => 'Thông tin trên máy chủ',
   };
-  Future<void> _resume() async {
-    final charging = context.read<ChargingSessionProvider>();
-    if (await charging.restoreSession() &&
-        mounted &&
-        charging.currentSession != null) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const LiveChargingScreen()));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final selected = _selected;
+    final missing =
+        widget.missingRequirements ??
+        auth.currentUser?.missingRequirements ??
+        <String>[];
+
     return Scaffold(
-      bottomNavigationBar: !_loading && selected != null && _valid(selected)
-          ? SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: CustomButton(
-                  text: 'Xác nhận xe và lưu hồ sơ',
-                  isLoading: _saving || auth.isLoading,
-                  onPressed: _save,
-                ),
-              ),
-            )
-          : null,
       appBar: AppBar(
         title: const Text('Hoàn tất hồ sơ'),
+        centerTitle: true,
         actions: [
           IconButton(
             tooltip: 'Đăng xuất',
@@ -174,105 +92,210 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Text(
-            'Cập nhật hồ sơ và chọn xe trong catalog do Admin quản lý trước khi đặt lịch hoặc tạo phiên sạc.',
-          ),
-          for (final code
-              in widget.missingRequirements ??
-                  auth.currentUser?.missingRequirements ??
-                  <String>[])
-            Text('• ${_reason(code)}'),
-          const SizedBox(height: 16),
-          Form(
-            key: _form,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _name,
-                  decoration: const InputDecoration(labelText: 'Họ và tên'),
-                  validator: (v) =>
-                      v == null ||
-                          v.trim().isEmpty ||
-                          v.contains('Chưa cập nhật')
-                      ? 'Nhập họ và tên'
-                      : null,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _phone,
-                  decoration: const InputDecoration(labelText: 'Số điện thoại'),
-                  keyboardType: TextInputType.phone,
-                  validator: (v) =>
-                      v == null ||
-                          v.trim().isEmpty ||
-                          v.contains('Chưa cập nhật')
-                      ? 'Nhập số điện thoại'
-                      : null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header card with helpful information
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.assignment_outlined,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Bước 1: Thông tin liên hệ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Vui lòng nhập họ tên và số điện thoại trước khi chọn phương tiện di chuyển của bạn.',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.black87,
+                              height: 1.4,
+                            ),
+                          ),
+                          if (missing.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            for (final code in missing)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _reason(code),
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Form Input
+                    Form(
+                      key: _form,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Name Field
+                          TextFormField(
+                            controller: _name,
+                            decoration: InputDecoration(
+                              labelText: 'Họ và tên',
+                              hintText: 'Nhập họ và tên đầy đủ',
+                              prefixIcon: const Icon(Icons.person_outline),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            validator: (v) =>
+                                v == null ||
+                                    v.trim().isEmpty ||
+                                    v.contains('Chưa cập nhật')
+                                ? 'Vui lòng nhập họ và tên'
+                                : null,
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Phone Field
+                          TextFormField(
+                            controller: _phone,
+                            decoration: InputDecoration(
+                              labelText: 'Số điện thoại',
+                              hintText: 'VD: 0918306884',
+                              prefixIcon: const Icon(Icons.phone_outlined),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            keyboardType: TextInputType.phone,
+                            validator: (v) {
+                              if (v == null ||
+                                  v.trim().isEmpty ||
+                                  v.contains('Chưa cập nhật')) {
+                                return 'Vui lòng nhập số điện thoại';
+                              }
+                              return Validators.phone(v);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text('Chọn xe bạn sử dụng'),
-          if (_loading) const Center(child: CircularProgressIndicator()),
-          if (_error != null) ApiProblem(message: _error!, onRetry: _load),
-          if (!_loading && _catalog.isEmpty)
-            const Text(
-              'Catalog chưa có xe. Cần Admin bổ sung thông tin xe chính thức.',
-            ),
-          for (final vehicle in _catalog)
-            Card(
-              child: ListTile(
-                title: Text(vehicle.modelName),
-                subtitle: Text(
-                  _valid(vehicle)
-                      ? '${vehicle.batteryCapacityKWh} kWh · ${vehicle.vehicleType}'
-                      : 'Không thể chọn: xe bị tắt hoặc thiếu thông số. Cần Admin xác nhận.',
-                ),
-                trailing: Icon(
-                  _selected?.id == vehicle.id
-                      ? Icons.check_circle
-                      : Icons.circle_outlined,
-                ),
-                onTap: _saving || !_valid(vehicle)
-                    ? null
-                    : () => setState(() => _selected = vehicle),
               ),
             ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const MyBookingsScreen())),
-            child: const Text('Xem / hủy lịch đặt đã có'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const TransactionHistoryScreen(),
+
+            // Bottom Action - Duy nhất nút Tiếp tục
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    offset: const Offset(0, -3),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomButton(
+                    text: 'Tiếp tục chọn xe',
+                    onPressed: _goToVehicleSelection,
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const TransactionHistoryScreen(),
+                      ),
+                    ),
+                    child: const Text('Xem lịch sử giao dịch'),
+                  ),
+                ],
               ),
             ),
-            child: const Text('Xem lịch sử giao dịch'),
-          ),
-          TextButton(
-            onPressed: _resume,
-            child: const Text('Mở phiên/hóa đơn đang có để tiếp tục xử lý'),
-          ),
-          TextButton(
-            onPressed: auth.isLoading
-                ? null
-                : () async {
-                    if (await auth.refreshProfile() &&
-                        mounted &&
-                        auth.currentUser!.profileCompleted)
-                      widget.onCompleted?.call();
-                  },
-            child: const Text('Kiểm tra lại hồ sơ trên máy chủ'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

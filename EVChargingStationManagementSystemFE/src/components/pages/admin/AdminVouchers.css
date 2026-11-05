@@ -1,0 +1,57 @@
+/* AdminVouchers Green Theme */
+
+.admin-vouchers-container {
+    padding: 24px;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.admin-vouchers-container .card-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Green theme buttons */
+.admin-vouchers-container .ant-btn-primary {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%) !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 176, 155, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.admin-vouchers-container .ant-btn-primary:hover {
+    background: linear-gradient(135deg, #00d4b8 0%, #a8db4a 100%) !important;
+    box-shadow: 0 4px 12px rgba(0, 176, 155, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+.admin-vouchers-container .ant-btn-primary:active {
+    transform: translateY(0) !important;
+}
+
+/* Modal buttons */
+.admin-vouchers-container .ant-modal-footer .ant-btn-primary {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%) !important;
+    border: none !important;
+}
+
+.admin-vouchers-container .ant-modal-footer .ant-btn-primary:hover {
+    background: linear-gradient(135deg, #00d4b8 0%, #a8db4a 100%) !important;
+}
+
+/* Switch green theme */
+.admin-vouchers-container .ant-switch-checked {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%) !important;
+}
+
+/* Table styling */
+.admin-vouchers-container .ant-table {
+    background: white;
+    border-radius: 8px;
+}
+
+.admin-vouchers-container .ant-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}

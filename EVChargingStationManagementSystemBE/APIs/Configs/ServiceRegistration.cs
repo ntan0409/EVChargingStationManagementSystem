@@ -81,7 +81,11 @@ namespace APIs.Configs
 
             //  Map entity → view dto (trả về cho client)
             TypeAdapterConfig<EVDriverProfile, EVDriverViewDto>.NewConfig()
-                .Map(dest => dest, src => src.UserAccount) // auto-map các field giống tên: Name, Email, Phone, Address, ProfilePictureUrl
+                .Map(dest => dest.Name, src => src.UserAccount.Name)
+                .Map(dest => dest.Email, src => src.UserAccount.Email)
+                .Map(dest => dest.PhoneNumber, src => src.UserAccount.PhoneNumber)
+                .Map(dest => dest.Address, src => src.UserAccount.Address)
+                .Map(dest => dest.ProfilePictureUrl, src => src.UserAccount.ProfilePictureUrl)
                 .Map(dest => dest.VehicleModelIds,
                      src => src.UserVehicles != null
                             ? src.UserVehicles.Select(v => v.VehicleModelId).ToList()

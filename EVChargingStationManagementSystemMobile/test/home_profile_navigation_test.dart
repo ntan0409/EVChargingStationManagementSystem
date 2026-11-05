@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:ev_charging_station/core/constants/api_constants.dart';
 import 'package:ev_charging_station/core/constants/app_theme.dart';
 import 'package:ev_charging_station/core/network/api_client.dart';
@@ -75,8 +76,8 @@ class _Notifications extends NotificationProvider {
 class _Bookings extends BookingProvider {
   int fetches = 0;
   @override
-  Future<void> fetchMyBookings() async {
-    fetches++;
+  Future<void> fetchMyBookings({bool silent = false}) async {
+    if (!silent) fetches++;
   }
 }
 
@@ -196,6 +197,21 @@ mount(
 }
 
 void main() {
+  setUp(() {
+    const channel = MethodChannel('flutter.baseflow.com/geolocator');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'isLocationServiceEnabled') return false;
+          if (call.method == 'checkPermission' ||
+              call.method == 'requestPermission')
+            return 0;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+  });
   testWidgets('Live banner keeps full-width button bounded on a small screen', (
     tester,
   ) async {

@@ -1,0 +1,526 @@
+/* Stations.css - cleaned & fixed */
+:root {
+    --grad-1: #667eea;
+    --grad-2: #764ba2;
+    --accent-1: #10b981;
+    --accent-2: #3b82f6;
+    --muted: #6b7280;
+    --white-15: rgba(255, 255, 255, 0.15);
+    --white-20: rgba(255, 255, 255, 0.2);
+}
+
+/* Container */
+.admin-stations {
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--grad-1) 0%, var(--grad-2) 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stations::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Header */
+.admin-stations .header {
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-stations .header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-stations .header p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Stats Cards */
+.admin-stations .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-stations .stat-card {
+    text-align: center;
+    background: var(--white-15);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid var(--white-20);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stations .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--grad-1), var(--grad-2), #f093fb);
+    border-radius: 20px 20px 0 0;
+}
+
+.admin-stations .stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.admin-stations .stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.admin-stations .stat-label {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+/* Actions Card */
+.admin-stations .actions-card {
+    margin-bottom: 1.5rem;
+    background: var(--white-15);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid var(--white-20);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stations .actions-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--grad-1), var(--grad-2), #f093fb);
+    border-radius: 20px 20px 0 0;
+}
+
+.admin-stations .actions-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.admin-stations .actions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+@media (min-width: 640px) {
+    .admin-stations .actions-container {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.admin-stations .search-container {
+    flex: 1;
+    max-width: 28rem;
+}
+
+.admin-stations .add-btn {
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .admin-stations .add-btn {
+        width: auto;
+    }
+}
+
+/* Table Card */
+.admin-stations .table-card {
+    background: var(--white-15);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid var(--white-20);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stations .table-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--grad-1), var(--grad-2), #f093fb);
+    border-radius: 20px 20px 0 0;
+}
+
+.admin-stations .table-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Station Info Cell */
+.admin-stations .station-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-stations .station-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.admin-stations .station-details .station-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.admin-stations .station-details .station-address {
+    font-size: 0.875rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.admin-stations .address-icon {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+/* Charger Status */
+.admin-stations .charger-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin-stations .charger-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.admin-stations .progress-container {
+    width: 100%;
+}
+
+.admin-stations .ant-progress {
+    margin: 0;
+}
+
+.admin-stations .ant-progress .ant-progress-bg {
+    background-color: #52c41a;
+}
+
+/* Status Tags */
+.admin-stations .status-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.admin-stations .status-tag.green {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.admin-stations .status-tag.red {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.admin-stations .status-tag.orange {
+    background-color: #fed7aa;
+    color: #9a3412;
+}
+
+/* Price Display */
+.admin-stations .price-display {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+/* Action Buttons */
+.admin-stations .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.admin-stations .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-stations .action-btn.edit {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.admin-stations .action-btn.edit:hover {
+    background-color: #2563eb;
+}
+
+.admin-stations .action-btn.delete {
+    background-color: #ef4444;
+    color: white;
+}
+
+.admin-stations .action-btn.delete:hover {
+    background-color: #dc2626;
+}
+
+/* Modal */
+.admin-stations .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-stations .modal-icon {
+    color: var(--accent-1);
+}
+
+.admin-stations .form-container {
+    padding: 1rem 0;
+}
+
+.admin-stations .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.admin-stations .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 1rem;
+}
+
+/* Loading State */
+.admin-stations .loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--muted);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .admin-stations .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-stations {
+        padding: 1rem;
+    }
+
+    .admin-stations .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .admin-stations .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .admin-stations .stat-card {
+        padding: 0.75rem;
+    }
+
+    .admin-stations .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .admin-stations .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-stations .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-stations .station-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .admin-stations .station-icon {
+        width: 2rem;
+        height: 2rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.admin-stations .stat-card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.admin-stations .stat-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.admin-stations .stat-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.admin.stations .stat-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.admin-stations .stat-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+/* Hover Effects */
+.admin-stations .stat-card:hover .stat-value {
+    transform: scale(1.05);
+}
+
+.admin-stations .station-icon:hover {
+    transform: scale(1.1);
+}
+
+/* Focus styles for accessibility */
+.admin-stations .action-btn:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Table responsive */
+@media (max-width: 768px) {
+
+    .admin-stations .ant-table-thead>tr>th,
+    .admin-stations .ant-table-tbody>tr>td {
+        padding: 8px 4px;
+        font-size: 0.875rem;
+    }
+}
+
+/* Custom pagination styles */
+.admin-stations .ant-pagination {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.admin-stations .ant-pagination .ant-pagination-item {
+    border-radius: 0.375rem;
+}
+
+.admin-stations .ant-pagination .ant-pagination-item-active {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.admin-stations .ant-pagination .ant-pagination-item-active a {
+    color: white;
+}
+
+/* Progress bar customization */
+.admin-stations .ant-progress-line {
+    margin: 0;
+}
+
+.admin-stations .ant-progress-text {
+    display: none;
+}
+
+/* Status shimmer */
+.admin-stations .status-tag {
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stations .status-tag.green::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}

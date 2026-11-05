@@ -11,6 +11,7 @@ import 'package:ev_charging_station/providers/auth_provider.dart';
 import 'package:ev_charging_station/services/auth_service.dart';
 import 'package:ev_charging_station/services/driver_journey_service.dart';
 import 'package:ev_charging_station/views/profile/profile_completion_screen.dart';
+import 'package:ev_charging_station/views/profile/vehicle_selection_screen.dart';
 import 'package:ev_charging_station/views/home/home_screen.dart';
 import 'package:ev_charging_station/views/widgets/driver_journey_guard.dart';
 import 'package:ev_charging_station/views/payment/transaction_history_screen.dart';
@@ -129,6 +130,8 @@ void main() {
       final fields = find.byType(TextFormField);
       await tester.enterText(fields.at(0), 'Fixture completed name');
       await tester.enterText(fields.at(1), '0900000001');
+      await tester.tap(find.text('Tiếp tục chọn xe'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(vehicle['modelName']));
       await tester.pump();
       expect(
@@ -150,7 +153,7 @@ void main() {
         adapter.requests
             .where((r) => r.path.endsWith('/EVDriver/update'))
             .length,
-        2,
+        1, // The merged two-step form now saves fields and vehicle atomically.
       );
       expect(tester.takeException(), isNull);
       await finish(tester);
@@ -165,6 +168,8 @@ void main() {
       final fields = find.byType(TextFormField);
       await tester.enterText(fields.at(0), 'Fixture name');
       await tester.enterText(fields.at(1), '0900000001');
+      await tester.tap(find.text('Tiếp tục chọn xe'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(vehicle['modelName']));
       await tester.pump();
       expect(
@@ -174,7 +179,7 @@ void main() {
       await tester.tap(find.text('Xác nhận xe và lưu hồ sơ'));
       await tester.pumpAndSettle();
       expect(auth.currentUser!.profileCompleted, isFalse);
-      expect(find.byType(ProfileCompletionScreen), findsOneWidget);
+      expect(find.byType(VehicleSelectionScreen), findsOneWidget);
       expect(find.byType(HomeScreen), findsNothing);
       await finish(tester);
     },
@@ -189,11 +194,18 @@ void main() {
         vehicle['batteryCapacityKWh'] = 0;
       final auth = await authFor(tester);
       await openApp(tester, auth);
-      final tile = tester.widget<ListTile>(
-        find.widgetWithText(ListTile, vehicle['modelName']),
+      await tester.enterText(find.byType(TextFormField).at(0), 'Fixture name');
+      await tester.enterText(find.byType(TextFormField).at(1), '0900000001');
+      await tester.tap(find.text('Tiếp tục chọn xe'));
+      await tester.pumpAndSettle();
+      final tile = tester.widget<InkWell>(
+        find.widgetWithText(InkWell, vehicle['modelName']),
       );
       expect(tile.onTap, isNull);
-      expect(find.textContaining('Cần Admin xác nhận'), findsOneWidget);
+      expect(
+        find.textContaining('Xe bị tắt hoặc thiếu thông số'),
+        findsOneWidget,
+      );
       expect(auth.currentUser!.profileCompleted, isFalse);
       expect(adapter.requests.where((r) => r.method == 'PUT'), isEmpty);
       await finish(tester);

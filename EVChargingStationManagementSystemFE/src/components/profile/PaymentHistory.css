@@ -1,0 +1,58 @@
+.payment-history-container {
+    padding: 24px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.payment-history-card {
+    max-width: 1200px;
+    margin: 0 auto;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.payment-history-card .ant-card-head {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+    border-radius: 16px 16px 0 0;
+    color: white;
+}
+
+.payment-history-card .ant-card-head-title {
+    color: white;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.payment-history-card .ant-btn {
+    border-radius: 8px;
+}
+
+.payment-history-card .ant-table {
+    border-radius: 8px;
+}
+
+.payment-history-card .ant-table-thead>tr>th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.payment-history-card .ant-table-tbody>tr:hover {
+    background: #f0f9ff;
+}
+
+.payment-history-card .ant-tag {
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .payment-history-container {
+        padding: 16px;
+    }
+
+    .payment-history-card .ant-card-head-title {
+        font-size: 18px;
+    }
+}

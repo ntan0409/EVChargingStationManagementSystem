@@ -1,0 +1,36 @@
+.social-login {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.google-btn-wrapper {
+  display: flex;
+  align-items: center;
+  width: 300px; /* dài bằng form đăng nhập */
+  height: 63px;
+
+  border-radius: 6px;
+  padding: 0 10px;
+  cursor: pointer;
+  background-color: #fff;
+  transition: all 0.2s;
+}
+
+.google-btn-wrapper:hover {
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+#googleBtn {
+  margin: 0;
+  padding: 0;
+  width: 36px !important; /* giữ icon nhỏ vuông */
+  height: 36px !important;
+}
+
+.google-text {
+  margin-left: 10px;
+  font-weight: bold;
+  font-size: 16px;
+  user-select: none;
+}

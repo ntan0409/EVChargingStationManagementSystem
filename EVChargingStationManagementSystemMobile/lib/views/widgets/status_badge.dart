@@ -31,6 +31,10 @@ class StatusBadge extends StatelessWidget {
       bg = AppColors.statusOccupied.withOpacity(0.15);
       fg = AppColors.statusOccupied;
       text = 'Đang sạc';
+    } else if (lower == 'inprogress' || lower == 'đang tiến hành' || lower == 'đã check-in') {
+      bg = Colors.orange.withOpacity(0.15);
+      fg = Colors.orange.shade800;
+      text = 'Đang tiến hành';
     } else if (lower == 'reserved' || lower == 'scheduled' || lower == 'pending' || lower == 'đã đặt') {
       bg = AppColors.statusReserved.withOpacity(0.15);
       fg = AppColors.statusReserved;

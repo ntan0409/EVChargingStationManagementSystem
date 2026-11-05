@@ -61,6 +61,7 @@ class SdkGoogleIdentity implements GoogleIdentity {
   Stream<GoogleCredential> get authenticationEvents => _events.stream;
 
   static GoogleSignInFailure failureFor(Object error) {
+    debugPrint('Google Sign-In Error: $error');
     if (error is GoogleSignInFailure) return error;
     if (error is GoogleSignInException) {
       return GoogleSignInFailure(switch (error.code) {

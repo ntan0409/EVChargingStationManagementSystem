@@ -1,124 +1,156 @@
-/* ====== Layout tổng ====== */
+/* Order.css - EVOne Booking History */
+
 .order-history-container {
   display: flex;
   justify-content: center;
-  padding: 40px 20px;
-  background: #f8f9fa;
-  min-height: 100vh;
-  font-family: "Poppins", sans-serif;
+  padding: 2.5rem 1.5rem;
+  background: #f8fafc;
+  min-height: calc(100vh - 160px);
+  font-family: 'Plus Jakarta Sans', var(--font-sans), sans-serif;
 }
 
 .order-history-content {
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
 }
 
-/* ====== Thanh tiêu đề + tìm kiếm ====== */
+/* Topbar */
 .order-history-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 25px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .order-history-topbar h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  margin: 0;
 }
 
 .order-history-topbar input {
-  padding: 10px 14px;
-  border-radius: 20px;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-  width: 220px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.92rem;
+  width: 260px;
   outline: none;
+  background: #ffffff;
+  color: #0f172a;
   transition: all 0.2s ease;
 }
 
 .order-history-topbar input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
-/* ====== Danh sách đơn hàng ====== */
+/* Order Cards List */
 .order-history-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
 }
 
 .order-history-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .order-history-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
 }
 
 .order-history-id {
-  color: #ff6b00;
-  font-weight: 700;
-  font-size: 16px;
-  margin-bottom: 10px;
+  color: #059669;
+  font-weight: 800;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* ====== Nội dung đơn hàng ====== */
+/* Content */
 .order-history-info p {
-  margin: 5px 0;
-  color: #333;
-  font-size: 15px;
+  margin: 0.45rem 0;
+  color: #334155;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.order-history-list p{
-  color:black;
-}
 
-/* ====== Trạng thái ====== */
-
-
+/* Badges */
 .order-history-info .scheduled {
-  font-weight: 600;
-  font-size: 15px;
-  border-radius: 8px;
-  color: #3b82f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.2);
 }
 
 .order-history-info .completed {
-
-  font-weight: 600;
-  font-size: 15px;
-  color:#16a34a;;
-
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .order-history-info .inprogress {
-
-  font-weight: 600;
-  font-size: 15px;
-  color:#F59E0B;
-
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .order-history-info .cancelled {
-  font-weight: 600;
-  font-size: 15px;
-  color:#ef4444;;
-
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
-
-/* ====== Responsive ====== */
-@media (max-width: 600px) {
+/* Responsive */
+@media (max-width: 640px) {
   .order-history-topbar {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
   }
 
   .order-history-topbar input {

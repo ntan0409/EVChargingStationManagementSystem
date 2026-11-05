@@ -1,4 +1,4 @@
-﻿using BusinessLogic.IServices;
+using BusinessLogic.IServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,29 +22,37 @@ namespace BusinessLogic.Jobs
         {
             _logger.LogInformation("VoucherExpiryJob started.");
 
-            // Cho DB, migration, context khởi động xong
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
-
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                using var scope = _scopeFactory.CreateScope();
-                var voucherService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
+                // Cho DB, migration, context khởi động xong
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
-                try
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    int expired = await voucherService.ExpireAllExpiredVouchers();
+                    using var scope = _scopeFactory.CreateScope();
+                    var voucherService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
 
-                    if (expired > 0)
-                        _logger.LogInformation("[VoucherExpiryJob] Đã hết hạn {count} vouchers", expired);
-                    else
-                        _logger.LogInformation("[VoucherExpiryJob] Không có voucher nào hết hạn.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "VoucherExpiryJob ERROR");
-                }
+                    try
+                    {
+                        int expired = await voucherService.ExpireAllExpiredVouchers();
 
-                await Task.Delay(_interval, stoppingToken);
+                        if (expired > 0)
+                            _logger.LogInformation("[VoucherExpiryJob] Đã hết hạn {count} vouchers", expired);
+                        else
+                            _logger.LogInformation("[VoucherExpiryJob] Không có voucher nào hết hạn.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "VoucherExpiryJob ERROR");
+                    }
+
+                    await Task.Delay(_interval, stoppingToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // TaskCanceledException/OperationCanceledException xảy ra bình thường khi host/server dừng hoặc khởi động lại
+                _logger.LogInformation("VoucherExpiryJob đã nhận tín hiệu dừng.");
             }
 
             _logger.LogInformation("VoucherExpiryJob stopped.");

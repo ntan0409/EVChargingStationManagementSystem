@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Globalization;
 using BusinessLogic.Base;
 using BusinessLogic.IServices;
 using Common;
@@ -12,7 +14,6 @@ namespace APIs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "EVDriver,Admin,Staff")]
 public class PaymentController(IPaymentService service, IDataProtectionProvider protection) : ControllerBase
 {
     [HttpPost("sepay-sandbox")]
@@ -50,24 +51,47 @@ public class PaymentController(IPaymentService service, IDataProtectionProvider 
         catch (CryptographicException) { return BadRequest(); }
     }
     [HttpGet("methods")]
+    [AllowAnonymous]
     public IActionResult Methods() => Result(service.GetMethods());
 
     [HttpGet("session/{sessionId:guid}")]
-    [Authorize(Roles = "EVDriver")]
-    public async Task<IActionResult> SessionPayment(Guid sessionId) => Result(await service.GetSessionPayment(sessionId, User.GetUserId()));
+    [AllowAnonymous]
+    public async Task<IActionResult> SessionPayment(Guid sessionId) => Result(await service.GetSessionPayment(sessionId, User.TryGetUserId()));
 
     [HttpPost]
-    [Authorize(Roles = "EVDriver")]
-    public async Task<IActionResult> CreatePaymentURL([FromQuery] Guid sessionId) => Result(await service.CreatePaymentURL(sessionId, User.GetUserId()));
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatePaymentURL([FromQuery] Guid sessionId) => Result(await service.CreatePaymentURL(sessionId, User.TryGetUserId()));
 
     [HttpPost("sepay-test")]
-    [Authorize(Roles = "EVDriver")]
+    [AllowAnonymous]
     public async Task<IActionResult> CreateSePayPayment([FromQuery] Guid sessionId) =>
-        Result(await service.CreateSePayPayment(sessionId, User.GetUserId()));
+        Result(await service.CreateSePayPayment(sessionId, User.TryGetUserId()));
+
+    [HttpPost("sepay-test/confirm")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ConfirmSePayPayment([FromQuery] Guid sessionId) =>
+        Result(await service.ConfirmSePayPayment(sessionId, User.TryGetUserId()));
+
+    [HttpPost("sepay/webhook")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SePayWebhook([FromBody] JsonElement payload)
+    {
+        string content = "";
+        decimal amount = 0;
+        if (payload.TryGetProperty("transactionContent", out var cProp) ||
+            payload.TryGetProperty("content", out cProp))
+            content = cProp.GetString() ?? "";
+
+        if (payload.TryGetProperty("amountIn", out var aProp) ||
+            payload.TryGetProperty("transferAmount", out aProp))
+            decimal.TryParse(aProp.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out amount);
+
+        return Result(await service.ProcessSePayWebhook(content, amount));
+    }
 
     [HttpPost("offline")]
-    [Authorize(Roles = "EVDriver")]
-    public async Task<IActionResult> CreatePaymentOfflineRecord([FromQuery] Guid sessionId) => Result(await service.CreatePaymentOfflineRecord(sessionId, User.GetUserId()));
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatePaymentOfflineRecord([FromQuery] Guid sessionId) => Result(await service.CreatePaymentOfflineRecord(sessionId, User.TryGetUserId()));
 
     [HttpPatch("offline-status")]
     [Authorize(Roles = "Staff")]

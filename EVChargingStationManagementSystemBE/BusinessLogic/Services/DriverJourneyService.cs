@@ -26,7 +26,8 @@ public class DriverJourneyService(EVCSMSContext db)
         var account = driver.UserAccount;
         var missing = new List<string>();
         if (!HasProfileValue(account.Name)) missing.Add("name");
-        if (!HasProfileValue(account.PhoneNumber)) missing.Add("phoneNumber");
+        // SĐT không bắt buộc đối với profile - user có thể bổ sung sau
+        // if (!HasProfileValue(account.PhoneNumber)) missing.Add("phoneNumber");
         if (!account.EmailConfirmed) missing.Add("emailVerification");
         if (account.Status != "Active" || driver.Status != "Active") missing.Add("accountInactive");
         var eligible = driver.UserVehicles.Where(v => Supported(v.VehicleModel)).Select(v => v.VehicleModelId).ToList();

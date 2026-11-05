@@ -1,4 +1,4 @@
-﻿using BusinessLogic.IServices;
+using BusinessLogic.IServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,29 +19,37 @@ namespace BusinessLogic.Jobs
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                try
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+                    try
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
 
-                    _logger.LogInformation("[BookingBackgroundJob] bắt đầu chạy lúc {time}", DateTime.Now);
+                        _logger.LogInformation("[BookingBackgroundJob] bắt đầu chạy lúc {time}", DateTime.Now);
 
-                    await bookingService.LockAccountsWithTooManyNoShows();
-                    await bookingService.AutoCancelExpiredBookings();
-                    //await bookingService.AutoReassignBookingsForErrorStations();
-                    await bookingService.AutoReserveConnectorBeforeStart();
-                    await bookingService.AutoCompleteBookingsAsync();
+                        await bookingService.LockAccountsWithTooManyNoShows();
+                        await bookingService.AutoCancelExpiredBookings();
+                        //await bookingService.AutoReassignBookingsForErrorStations();
+                        await bookingService.AutoReserveConnectorBeforeStart();
+                        await bookingService.AutoCompleteBookingsAsync();
 
-                    _logger.LogInformation("[BookingBackgroundJob] hoàn tất vòng chạy lúc {time}", DateTime.Now);
+                        _logger.LogInformation("[BookingBackgroundJob] hoàn tất vòng chạy lúc {time}", DateTime.Now);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[BookingBackgroundJob] lỗi trong vòng chạy");
+                    }
+
+                    await Task.Delay(_interval, stoppingToken);
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[BookingBackgroundJob] lỗi trong vòng chạy");
-                }
-
-                await Task.Delay(_interval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // TaskCanceledException/OperationCanceledException xảy ra bình thường khi host/server dừng hoặc khởi động lại
+                _logger.LogInformation("[BookingBackgroundJob] đã nhận tín hiệu dừng.");
             }
         }
     }

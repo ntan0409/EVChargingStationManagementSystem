@@ -22,15 +22,16 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
     public async Task<IServiceResult> GetById(Guid id, Guid? accountId = null)
     {
         var session = await db.ChargingSessions.AsNoTracking().FirstOrDefaultAsync(s =>
-            !s.IsDeleted && s.Id == id && (accountId == null || s.UserId == accountId));
+            !s.IsDeleted && s.Id == id && (accountId == null || s.UserId == null || s.UserId == accountId));
         return await LiveSnapshot(session);
     }
 
     public async Task<IServiceResult> GetByConnector(Guid connectorId, Guid? accountId = null)
     {
         var session = await db.ChargingSessions.AsNoTracking().Where(s => !s.IsDeleted &&
-            s.ConnectorId == connectorId && s.Status == "Completed" &&
-            (accountId == null || s.UserId == accountId)).OrderByDescending(s => s.UpdatedAt).FirstOrDefaultAsync();
+            s.ConnectorId == connectorId &&
+            (accountId == null || s.UserId == null || s.UserId == accountId))
+            .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync();
         return Snapshot(session);
     }
 
@@ -45,64 +46,111 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
     public Task<IServiceResult> Start(ChargingSessionStartDto dto, Guid? accountId = null) =>
         DatabaseWork.Write(db, async () =>
         {
-            if (accountId == null || accountId == Guid.Empty)
-                return Fail("Không xác định được tài xế từ phiên đăng nhập.");
-            var eligibility = await journey.GetState(accountId.Value);
-            if (eligibility?.ProfileCompleted != true)
-                return Fail("Hoàn tất hồ sơ, xác minh email và chọn xe hợp lệ trước khi bắt đầu sạc.");
-            if (dto.BookingId == null || dto.BookingId == Guid.Empty)
-                return Fail("Cần lịch đặt đã check-in trước khi bắt đầu sạc.");
-            if (dto.BatteryCapacityKWh <= 0 || dto.InitialBatteryLevelPercent < 0 ||
-                dto.ExpectedEnergiesKWh > 100 || dto.InitialBatteryLevelPercent >= dto.ExpectedEnergiesKWh)
+            if (dto.InitialBatteryLevelPercent < 0 || dto.ExpectedEnergiesKWh > 100 ||
+                dto.InitialBatteryLevelPercent >= dto.ExpectedEnergiesKWh)
                 return Fail("Thông số pin không hợp lệ.");
-            var driver = await db.EVDrivers.FirstOrDefaultAsync(d => d.AccountId == accountId && !d.IsDeleted);
-            if (driver == null) return Missing("Không tìm thấy hồ sơ tài xế.");
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == accountId && !u.IsDeleted && u.Status == "Active");
-            if (user == null) return Fail("Tài khoản không được phép bắt đầu sạc.");
-            if (await db.ChargingSessions.AnyAsync(s => !s.IsDeleted && s.UserId == accountId &&
-                (s.Status == "Charging" || s.Status == "Completed")))
-                return Fail("Bạn còn phiên đang sạc hoặc chưa thanh toán. Hãy mở lại phiên hiện tại.");
-            if (dto.VehicleModelId == null || dto.VehicleModelId == Guid.Empty)
-                return Fail("Vui lòng chọn mẫu xe hợp lệ.");
-            var vehicle = await db.VehicleModels.AsNoTracking().FirstOrDefaultAsync(v =>
-                v.Id == dto.VehicleModelId && !v.IsDeleted);
-            if (vehicle == null || vehicle.Status != "Active") return Missing("Mẫu xe không tồn tại hoặc chưa hoạt động.");
-            if (vehicle.BatteryCapacityKWh != dto.BatteryCapacityKWh)
-                return Fail("Dung lượng pin không khớp mẫu xe trên máy chủ.");
-            if (!await db.UserVehicles.AnyAsync(v => v.DriverId == driver.Id && v.VehicleModelId == dto.VehicleModelId))
-                return Fail("Xe chưa có trong hồ sơ tài xế. Hãy thêm xe trước khi sạc.");
-            var booking = await db.Bookings.FirstOrDefaultAsync(b => b.Id == dto.BookingId &&
-                b.BookedBy == accountId && !b.IsDeleted);
-            if (booking == null || booking.ConnectorId != dto.ConnectorId || booking.VehicleModelId != dto.VehicleModelId ||
-                booking.Status != "InProgress" || DateTime.Now < booking.StartTime.AddMinutes(-15) || DateTime.Now > booking.EndTime)
-                return Fail("Lịch đặt chưa check-in, hết hiệu lực hoặc không khớp xe/cổng của bạn.");
+
             var connector = await db.Set<Connector>().Include(c => c.ChargingPost)
                 .ThenInclude(p => p.ChargingStationNavigation)
                 .FirstOrDefaultAsync(c => c.Id == dto.ConnectorId && !c.IsDeleted);
             if (connector == null || connector.ChargingPost.IsDeleted ||
                 connector.ChargingPost.ChargingStationNavigation.IsDeleted)
                 return Missing("Không tìm thấy cổng, trụ hoặc trạm sạc.");
-            if (connector.Status != "InUse" || !connector.IsPluggedIn || connector.IsLocked)
-                return Fail("Cổng chưa được cắm vào xe, đang bận hoặc còn hóa đơn chưa thanh toán.");
+
             if (connector.ChargingPost.Status != "Available" && connector.ChargingPost.Status != "Busy")
                 return Fail("Trụ sạc không hoạt động.");
+
             if (connector.ChargingPost.ChargingStationNavigation.Status != "Active" &&
                 connector.ChargingPost.ChargingStationNavigation.Status != "Busy")
                 return Fail("Trạm sạc không hoạt động.");
-            if (connector.ChargingPost.VehicleTypeSupported != vehicle.VehicleType)
-                return Fail("Loại xe không tương thích với trụ sạc.");
+
+            // Kiểm tra xem cổng này có phiên sạc nào đang chạy dở chưa
+            if (await db.ChargingSessions.AnyAsync(s => !s.IsDeleted && s.ConnectorId == connector.Id &&
+                (s.Status == "Charging" || s.Status == "Completed")))
+                return Fail("Cổng đang có phiên sạc hoặc còn hóa đơn chưa thanh toán.");
+
             var now = DateTime.Now;
+            bool hasBooking = dto.BookingId != null && dto.BookingId != Guid.Empty;
+
+            if (hasBooking)
+            {
+                // Luồng có booking
+                var booking = await db.Bookings.FirstOrDefaultAsync(b => b.Id == dto.BookingId && !b.IsDeleted);
+                if (booking == null || booking.ConnectorId != dto.ConnectorId ||
+                    booking.Status != "InProgress" || now < booking.StartTime.AddMinutes(-15) || now > booking.EndTime)
+                    return Fail("Lịch đặt chưa check-in, hết hiệu lực hoặc không khớp xe/cổng của bạn.");
+
+                if (accountId != null && booking.BookedBy != accountId)
+                    return Fail("Lịch đặt không thuộc tài khoản của bạn.");
+
+                if (dto.VehicleModelId != null && booking.VehicleModelId != dto.VehicleModelId)
+                    return Fail("Xe không khớp với lịch đặt.");
+            }
+            else
+            {
+                // Luồng vãng lai / không booking: kiểm tra slot có bị người khác đặt trước trong khoảng thời gian này không
+                var hasConflictingBooking = await db.Bookings.AnyAsync(b => !b.IsDeleted &&
+                    b.ConnectorId == dto.ConnectorId &&
+                    (b.Status == "Reserved" || b.Status == "Scheduled" || b.Status == "InProgress") &&
+                    b.StartTime <= now.AddMinutes(30) && b.EndTime >= now);
+
+                if (hasConflictingBooking)
+                    return Fail("Cổng này đang có lịch đặt trước của khách hàng khác. Vui lòng chọn cổng trống khác.");
+            }
+
+            // Xử lý thông tin người dùng / tài xế
+            EVDriverProfile? driver = null;
+            if (accountId != null && accountId != Guid.Empty)
+            {
+                driver = await db.EVDrivers.FirstOrDefaultAsync(d => d.AccountId == accountId && !d.IsDeleted);
+                if (await db.ChargingSessions.AnyAsync(s => !s.IsDeleted && s.UserId == accountId &&
+                    (s.Status == "Charging" || s.Status == "Completed")))
+                    return Fail("Bạn còn phiên đang sạc hoặc chưa thanh toán. Hãy mở lại phiên hiện tại.");
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                var userByPhone = await db.Users.Include(u => u.EVDriverProfile)
+                    .FirstOrDefaultAsync(u => !u.IsDeleted && u.PhoneNumber == dto.Phone.Trim());
+                if (userByPhone != null)
+                {
+                    accountId = userByPhone.Id;
+                    driver = userByPhone.EVDriverProfile;
+                }
+            }
+
+            // Kiểm tra mẫu xe nếu có truyền
+            if (dto.VehicleModelId != null && dto.VehicleModelId != Guid.Empty)
+            {
+                var vehicle = await db.VehicleModels.AsNoTracking().FirstOrDefaultAsync(v =>
+                    v.Id == dto.VehicleModelId && !v.IsDeleted);
+                if (vehicle != null && connector.ChargingPost.VehicleTypeSupported != vehicle.VehicleType)
+                    return Fail("Loại xe không tương thích với trụ sạc.");
+            }
+
             var session = new ChargingSession
             {
-                Id = Guid.NewGuid(), ConnectorId = connector.Id, ChargingPostId = connector.ChargingPostId,
-                UserId = accountId, DriverId = driver.Id, VehicleModelId = dto.VehicleModelId, BookingId = dto.BookingId,
-                BatteryCapacityKWh = dto.BatteryCapacityKWh, InitialBatteryLevelPercent = dto.InitialBatteryLevelPercent,
-                ExpectedEnergiesKWh = dto.ExpectedEnergiesKWh, PowerRateKW = connector.ChargingPost.MaxPowerKw,
-                StartTime = now, CreatedAt = now, UpdatedAt = now, Status = "Charging"
+                Id = Guid.NewGuid(),
+                ConnectorId = connector.Id,
+                ChargingPostId = connector.ChargingPostId,
+                UserId = accountId,
+                DriverId = driver?.Id,
+                VehicleModelId = dto.VehicleModelId,
+                BookingId = dto.BookingId,
+                BatteryCapacityKWh = dto.BatteryCapacityKWh > 0 ? dto.BatteryCapacityKWh : 80,
+                InitialBatteryLevelPercent = dto.InitialBatteryLevelPercent,
+                ExpectedEnergiesKWh = dto.ExpectedEnergiesKWh,
+                PowerRateKW = connector.ChargingPost.MaxPowerKw,
+                StartTime = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Status = "Charging"
             };
+
             connector.Status = "Charging";
+            connector.IsPluggedIn = true;
             connector.IsLocked = true;
             connector.UpdatedAt = now;
+
             db.ChargingSessions.Add(session);
             await db.SaveChangesAsync();
             return Snapshot(session);
@@ -111,9 +159,9 @@ public class ChargingSessionService(EVCSMSContext db, DriverJourneyService journ
     public Task<IServiceResult> Stop(ChargingSessionStopDto dto, Guid sessionId, Guid? accountId = null) =>
         DatabaseWork.Write(db, async () =>
         {
-            if (accountId == null) return Fail("Không xác định được tài xế.");
             var session = await db.ChargingSessions.Include(s => s.Connector).FirstOrDefaultAsync(s =>
-                s.Id == sessionId && !s.IsDeleted && s.UserId == accountId);
+                s.Id == sessionId && !s.IsDeleted &&
+                (accountId == null || s.UserId == null || s.UserId == accountId));
             if (session == null) return Missing("Không tìm thấy phiên sạc của bạn.");
             var energy = dto.EnergyDeliveredKWh;
             if (dto.DemoReading)

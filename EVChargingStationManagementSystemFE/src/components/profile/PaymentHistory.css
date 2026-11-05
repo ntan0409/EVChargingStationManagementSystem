@@ -1,58 +1,76 @@
+/* PaymentHistory.css - EVOne Payment History */
+
 .payment-history-container {
-    padding: 24px;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 2.5rem 1.5rem;
+    min-height: calc(100vh - 160px);
+    background: #f8fafc;
+    font-family: 'Plus Jakarta Sans', var(--font-sans), sans-serif;
 }
 
 .payment-history-card {
     max-width: 1200px;
     margin: 0 auto;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    background: #ffffff;
+    overflow: hidden;
 }
 
 .payment-history-card .ant-card-head {
-    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
-    border-radius: 16px 16px 0 0;
-    color: white;
+    background: linear-gradient(135deg, #090d16 0%, #064e3b 50%, #059669 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.25rem 2rem;
 }
 
 .payment-history-card .ant-card-head-title {
-    color: white;
-    font-size: 20px;
-    font-weight: 600;
+    color: #ffffff !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.3px;
 }
 
 .payment-history-card .ant-btn {
-    border-radius: 8px;
+    border-radius: 10px;
+    font-weight: 600;
 }
 
 .payment-history-card .ant-table {
-    border-radius: 8px;
+    border-radius: 14px;
+    overflow: hidden;
+    font-family: inherit;
 }
 
-.payment-history-card .ant-table-thead>tr>th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #333;
+.payment-history-card .ant-table-thead > tr > th {
+    background: #f8fafc !important;
+    font-weight: 700 !important;
+    color: #475569 !important;
+    font-size: 0.82rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
-.payment-history-card .ant-table-tbody>tr:hover {
-    background: #f0f9ff;
+.payment-history-card .ant-table-tbody > tr > td {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    font-size: 0.9rem;
+    color: #1e293b;
+}
+
+.payment-history-card .ant-table-tbody > tr:hover > td {
+    background: #f8fafc !important;
 }
 
 .payment-history-card .ant-tag {
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-weight: 500;
+    border-radius: 9999px;
+    padding: 3px 10px;
+    font-weight: 600;
+    font-size: 0.78rem;
 }
 
 @media (max-width: 768px) {
     .payment-history-container {
-        padding: 16px;
-    }
-
-    .payment-history-card .ant-card-head-title {
-        font-size: 18px;
+        padding: 1rem;
     }
 }

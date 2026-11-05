@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ConfigProvider } from "antd";
 // import Layout from "./pages/Layout";
 
 import Layout from "./components/pages/Layout";
@@ -82,13 +83,39 @@ import PaymentHistory from "./components/profile/PaymentHistory.jsx";
 
 
 
+const antdTheme = {
+  token: {
+    colorPrimary: "#10b981",
+    colorSuccess: "#10b981",
+    colorWarning: "#f59e0b",
+    colorError: "#ef4444",
+    colorInfo: "#0ea5e9",
+    borderRadius: 12,
+    borderRadiusLG: 16,
+    fontFamily: "'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif",
+  },
+  components: {
+    Button: {
+      borderRadius: 12,
+      controlHeight: 40,
+      fontWeight: 600,
+    },
+    Card: {
+      borderRadiusLG: 18,
+    },
+    Table: {
+      borderRadius: 14,
+    },
+  },
+};
+
 export default function App() {
 
   return (
-
-    <NotificationProvider>
-      <BrowserRouter>
-        <ToastContainer
+    <ConfigProvider theme={antdTheme}>
+      <NotificationProvider>
+        <BrowserRouter>
+          <ToastContainer
           position="top-right"
           autoClose={3000}
           hideProgressBar={false}
@@ -210,6 +237,7 @@ export default function App() {
 
       </BrowserRouter>
     </NotificationProvider>
+  </ConfigProvider>
 
   );
 }

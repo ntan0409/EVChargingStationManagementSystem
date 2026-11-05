@@ -1,4 +1,4 @@
-﻿using BusinessLogic.IServices;
+using BusinessLogic.IServices;
 using Common;
 using Common.DTOs.ChargingSessionDto;
 using Common.Helper;
@@ -9,7 +9,6 @@ namespace APIs.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "EVDriver,Admin,Staff")]
     public class ChargingSessionController(IChargingSessionService service) : ControllerBase
     {
         private readonly IChargingSessionService _service = service;
@@ -18,16 +17,6 @@ namespace APIs.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetList()
         {
-            //Guid userId;
-            //try
-            //{
-            //    userId = User.GetUserId();
-            //}
-            //catch
-            //{
-            //    return Unauthorized(new { message = "Không xác định được userId từ token." });
-            //}
-
             var result = await _service.GetList();
 
             if (result.Status == Const.SUCCESS_READ_CODE)
@@ -40,9 +29,10 @@ namespace APIs.Controllers
         }
 
         [HttpGet("{sessionId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetById([FromRoute] Guid sessionId)
         {
-            var result = await _service.GetById(sessionId, User.IsInRole("EVDriver") ? User.GetUserId() : null);
+            var result = await _service.GetById(sessionId, User.TryGetUserId());
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -54,9 +44,10 @@ namespace APIs.Controllers
         }
 
         [HttpGet("Connector/{connectorId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetByConnectorId([FromRoute] Guid connectorId)
         {
-            var result = await _service.GetByConnector(connectorId, User.IsInRole("EVDriver") ? User.GetUserId() : null);
+            var result = await _service.GetByConnector(connectorId, User.TryGetUserId());
 
             if (result.Status == Const.SUCCESS_READ_CODE)
                 return Ok(new { data = result.Data, message = result.Message });
@@ -68,13 +59,13 @@ namespace APIs.Controllers
         }
 
         [HttpPost("Start")]
-        [Authorize(Roles = "EVDriver")]
+        [AllowAnonymous]
         public async Task<IActionResult> Start([FromBody]ChargingSessionStartDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _service.Start(dto, User.GetUserId());
+            var result = await _service.Start(dto, User.TryGetUserId());
 
             if (result.Status == Const.SUCCESS_CREATE_CODE && result.Data is ChargingSessionViewDetailDto createdDto)
                 return CreatedAtAction(nameof(GetById), new { sessionId = createdDto.Id },
@@ -90,10 +81,10 @@ namespace APIs.Controllers
         }
 
         [HttpPatch("Stop")]
-        [Authorize(Roles = "EVDriver")]
+        [AllowAnonymous]
         public async Task<IActionResult> Stop([FromBody] ChargingSessionStopDto dto, Guid sessionId)
         {
-            var result = await _service.Stop(dto, sessionId, User.GetUserId());
+            var result = await _service.Stop(dto, sessionId, User.TryGetUserId());
 
             if (result.Status == Const.SUCCESS_UPDATE_CODE)
                 return Ok(new { data = result.Data, message = result.Message });

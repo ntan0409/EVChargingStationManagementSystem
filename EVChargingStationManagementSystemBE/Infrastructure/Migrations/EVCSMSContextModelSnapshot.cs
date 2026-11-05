@@ -158,8 +158,413 @@ namespace Infrastructure.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
                             MaxPowerKw = 50,
-                            PostName = "Post A1",
+                            PostName = "Post A1 (Car 50kW)",
                             StationId = new Guid("55555555-5555-5555-5555-555555555555"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000001"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("66666666-6666-6666-6666-666666666666"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000002"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("66666666-6666-6666-6666-666666666666"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000003"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000004"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 150,
+                            PostName = "Trụ Ô tô 2 (150kW UltraFast)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000005"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "Type2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 7,
+                            PostName = "Trụ Xe Máy 1 (7kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Bike"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000006"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000007"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000008"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "Type2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 7,
+                            PostName = "Trụ Xe Máy 1 (7kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Bike"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000009"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000000a"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000000b"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000000c"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 150,
+                            PostName = "Trụ Ô tô 2 (150kW UltraFast)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000000d"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "Type2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 7,
+                            PostName = "Trụ Xe Máy 1 (7kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Bike"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000000e"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000000f"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000010"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "Type2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 7,
+                            PostName = "Trụ Xe Máy 1 (7kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Bike"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000011"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000006"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000012"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000006"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000013"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000014"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000015"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "Type2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 7,
+                            PostName = "Trụ Xe Máy 1 (7kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Bike"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000016"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000008"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000017"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 150,
+                            PostName = "Trụ Ô tô 2 (150kW UltraFast)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000008"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000018"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000009"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000019"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000009"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000001a"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 60,
+                            PostName = "Trụ Ô tô 1 (60kW)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000010"),
+                            Status = "Available",
+                            TotalConnectors = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            VehicleTypeSupported = "Car"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-00000000001b"),
+                            AvailableConnectors = 2,
+                            ConnectorType = "CCS2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            MaxPowerKw = 120,
+                            PostName = "Trụ Ô tô 2 (120kW SuperCharge)",
+                            StationId = new Guid("10000000-0000-0000-0000-000000000010"),
                             Status = "Available",
                             TotalConnectors = 2,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -313,9 +718,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OperatorId")
-                        .IsUnique()
-                        .HasFilter("[OperatorId] IS NOT NULL");
+                    b.HasIndex("OperatorId");
 
                     b.ToTable("ChargingStation", (string)null);
 
@@ -323,23 +726,23 @@ namespace Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("55555555-5555-5555-5555-555555555555"),
-                            AvailableBikeChargingPosts = 5,
-                            AvailableBikeConnectors = 10,
-                            AvailableCarChargingPosts = 3,
-                            AvailableCarConnectors = 6,
+                            AvailableBikeChargingPosts = 0,
+                            AvailableBikeConnectors = 0,
+                            AvailableCarChargingPosts = 1,
+                            AvailableCarConnectors = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
                             Latitude = "21.0285N",
-                            Location = "Hanoi",
+                            Location = "Hanoi Center",
                             Longitude = "105.8542E",
                             OperatorId = new Guid("22222222-2222-2222-2222-222222222222"),
                             Province = "Hanoi",
                             StationName = "VinFast Station Hanoi",
                             Status = "Active",
-                            TotalBikeChargingPosts = 5,
-                            TotalBikeConnectors = 10,
-                            TotalCarChargingConnectors = 6,
-                            TotalCarChargingPosts = 3,
+                            TotalBikeChargingPosts = 0,
+                            TotalBikeConnectors = 0,
+                            TotalCarChargingConnectors = 2,
+                            TotalCarChargingPosts = 1,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
@@ -347,21 +750,241 @@ namespace Infrastructure.Migrations
                             Id = new Guid("66666666-6666-6666-6666-666666666666"),
                             AvailableBikeChargingPosts = 0,
                             AvailableBikeConnectors = 0,
-                            AvailableCarChargingPosts = 0,
-                            AvailableCarConnectors = 0,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
-                            Latitude = "10.7769N",
-                            Location = "Ho Chi Minh City",
-                            Longitude = "106.7009E",
+                            Latitude = "10.7781N",
+                            Location = "72 Lê Thánh Tôn, Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+                            Longitude = "106.7018E",
                             OperatorId = new Guid("77777777-7777-7777-7777-777777777777"),
-                            Province = "HCM",
-                            StationName = "VinFast Station HCM",
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Vincom Đồng Khởi - Quận 1",
                             Status = "Active",
                             TotalBikeChargingPosts = 0,
                             TotalBikeConnectors = 0,
-                            TotalCarChargingConnectors = 0,
-                            TotalCarChargingPosts = 0,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                            AvailableBikeChargingPosts = 1,
+                            AvailableBikeConnectors = 2,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.7950N",
+                            Location = "720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP. Hồ Chí Minh",
+                            Longitude = "106.7218E",
+                            OperatorId = new Guid("44444444-4444-4444-4444-444444444444"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Landmark 81 - Bình Thạnh",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 1,
+                            TotalBikeConnectors = 2,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
+                            AvailableBikeChargingPosts = 1,
+                            AvailableBikeConnectors = 2,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.7293N",
+                            Location = "101 Tôn Dật Tiên, Tân Phú, Quận 7, TP. Hồ Chí Minh",
+                            Longitude = "106.7196E",
+                            OperatorId = new Guid("77777777-7777-7777-7777-777777777777"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Crescent Mall Phú Mỹ Hưng - Quận 7",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 1,
+                            TotalBikeConnectors = 2,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                            AvailableBikeChargingPosts = 0,
+                            AvailableBikeConnectors = 0,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.8142N",
+                            Location = "60A Trường Sơn, Phường 2, Tân Bình, TP. Hồ Chí Minh",
+                            Longitude = "106.6625E",
+                            OperatorId = new Guid("22222222-2222-2222-2222-222222222222"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Menas Mall Sân Bay - Tân Bình",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 0,
+                            TotalBikeConnectors = 0,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000004"),
+                            AvailableBikeChargingPosts = 1,
+                            AvailableBikeConnectors = 2,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.8034N",
+                            Location = "161 Xa Lộ Hà Nội, Thảo Điền, TP. Thủ Đức, TP. Hồ Chí Minh",
+                            Longitude = "106.7389E",
+                            OperatorId = new Guid("44444444-4444-4444-4444-444444444444"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Vincom Mega Mall Thảo Điền - TP. Thủ Đức",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 1,
+                            TotalBikeConnectors = 2,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000005"),
+                            AvailableBikeChargingPosts = 1,
+                            AvailableBikeConnectors = 2,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.8415N",
+                            Location = "Đường D1, Khu Công Nghệ Cao, Long Thạnh Mỹ, TP. Thủ Đức, TP. Hồ Chí Minh",
+                            Longitude = "106.8098E",
+                            OperatorId = new Guid("77777777-7777-7777-7777-777777777777"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Khu Công Nghệ Cao FPT - TP. Thủ Đức",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 1,
+                            TotalBikeConnectors = 2,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000006"),
+                            AvailableBikeChargingPosts = 0,
+                            AvailableBikeConnectors = 0,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.7712N",
+                            Location = "11 Sư Vạn Hạnh, Phường 12, Quận 10, TP. Hồ Chí Minh",
+                            Longitude = "106.6698E",
+                            OperatorId = new Guid("22222222-2222-2222-2222-222222222222"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Vạn Hạnh Mall - Quận 10",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 0,
+                            TotalBikeConnectors = 0,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000007"),
+                            AvailableBikeChargingPosts = 1,
+                            AvailableBikeConnectors = 2,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.7435N",
+                            Location = "Số 1 Đường Số 17A, Bình Trị Đông B, Bình Tân, TP. Hồ Chí Minh",
+                            Longitude = "106.6125E",
+                            OperatorId = new Guid("44444444-4444-4444-4444-444444444444"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Aeon Mall Bình Tân",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 1,
+                            TotalBikeConnectors = 2,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000008"),
+                            AvailableBikeChargingPosts = 0,
+                            AvailableBikeConnectors = 0,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.8285N",
+                            Location = "240-242 Phạm Văn Đồng, Hiệp Bình Chánh, TP. Thủ Đức, TP. Hồ Chí Minh",
+                            Longitude = "106.7235E",
+                            OperatorId = new Guid("77777777-7777-7777-7777-777777777777"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Giga Mall Phạm Văn Đồng - TP. Thủ Đức",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 0,
+                            TotalBikeConnectors = 0,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000009"),
+                            AvailableBikeChargingPosts = 0,
+                            AvailableBikeConnectors = 0,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.8289N",
+                            Location = "12 Phan Văn Trị, Phường 7, Gò Vấp, TP. Hồ Chí Minh",
+                            Longitude = "106.6892E",
+                            OperatorId = new Guid("22222222-2222-2222-2222-222222222222"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Vincom Plaza Phan Văn Trị - Gò Vấp",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 0,
+                            TotalBikeConnectors = 0,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000010"),
+                            AvailableBikeChargingPosts = 0,
+                            AvailableBikeConnectors = 0,
+                            AvailableCarChargingPosts = 2,
+                            AvailableCarConnectors = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Latitude = "10.7685N",
+                            Location = "3 Hòa Bình, Phường 3, Quận 11, TP. Hồ Chí Minh",
+                            Longitude = "106.6375E",
+                            OperatorId = new Guid("44444444-4444-4444-4444-444444444444"),
+                            Province = "TP. Hồ Chí Minh",
+                            StationName = "Trạm Sạc Đầm Sen Park - Quận 11",
+                            Status = "Active",
+                            TotalBikeChargingPosts = 0,
+                            TotalBikeConnectors = 0,
+                            TotalCarChargingConnectors = 4,
+                            TotalCarChargingPosts = 2,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
@@ -409,7 +1032,667 @@ namespace Infrastructure.Migrations
                         {
                             Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
                             ChargingPostId = new Guid("99999999-9999-9999-9999-999999999999"),
-                            ConnectorName = "Connector A1",
+                            ConnectorName = "Cổng sạc A1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccd"),
+                            ChargingPostId = new Guid("99999999-9999-9999-9999-999999999999"),
+                            ConnectorName = "Cổng sạc A2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000001"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000002"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000003"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000002"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000004"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000002"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000005"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000003"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000006"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000003"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000007"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000004"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000008"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000004"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000009"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000005"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000000a"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000005"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000000b"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000006"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000000c"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000006"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000000d"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000007"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000000e"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000007"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000000f"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000008"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000010"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000008"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000011"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000009"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000012"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000009"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000013"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000a"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000014"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000a"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000015"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000b"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000016"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000b"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000017"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000c"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000018"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000c"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000019"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000d"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000001a"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000d"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000001b"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000e"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000001c"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000e"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000001d"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000f"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000001e"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000000f"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000001f"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000010"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000020"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000010"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000021"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000011"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000022"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000011"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000023"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000012"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000024"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000012"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000025"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000013"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000026"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000013"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000027"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000014"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000028"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000014"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000029"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000015"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000002a"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000015"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000002b"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000016"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000002c"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000016"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000002d"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000017"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000002e"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000017"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-00000000002f"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000018"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000030"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000018"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000031"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000019"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000032"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-000000000019"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000033"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000001a"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000034"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000001a"),
+                            ConnectorName = "Cổng sạc 2",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000035"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000001b"),
+                            ConnectorName = "Cổng sạc 1",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            IsLocked = false,
+                            IsPluggedIn = false,
+                            Status = "Available",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000036"),
+                            ChargingPostId = new Guid("20000000-0000-0000-0000-00000000001b"),
+                            ConnectorName = "Cổng sạc 2",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
                             IsLocked = false,

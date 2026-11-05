@@ -38,8 +38,7 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         Timeout = TimeSpan.FromSeconds(4)
     };
 
-    private bool SePayConfigured => config["SePay:Enabled"] == "true" &&
-        db.Database.GetDbConnection().Database == "EVCSMS_TeamDemo" &&
+    private bool SePayConfigured => string.Equals(config["SePay:Enabled"], "true", StringComparison.OrdinalIgnoreCase) &&
         !string.IsNullOrWhiteSpace(config["SePay:TestToken"]) &&
         !string.IsNullOrWhiteSpace(config["SePay:TestBankAccountId"]);
 
@@ -66,25 +65,26 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
 
     private static decimal Total(decimal cost, decimal tax) => decimal.Round(cost * (1 + tax / 100), 0, MidpointRounding.AwayFromZero);
 
-    public async Task<IServiceResult> GetSessionPayment(Guid sessionId, Guid accountId)
+    public async Task<IServiceResult> GetSessionPayment(Guid sessionId, Guid? accountId = null)
     {
         var session = await db.ChargingSessions.AsNoTracking().FirstOrDefaultAsync(s =>
-            s.Id == sessionId && !s.IsDeleted && s.UserId == accountId);
+            s.Id == sessionId && !s.IsDeleted && (accountId == null || s.UserId == null || s.UserId == accountId));
         if (session == null) return Missing();
         var payment = await db.Set<Payment>().AsNoTracking().Where(p => !p.IsDeleted && p.ChargingSessionId == sessionId)
             .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
         if (payment is { Status: "Initiated" } &&
-            payment.PaidBy == accountId && session.Status == "Completed" &&
+            (accountId == null || payment.PaidBy == accountId) && session.Status == "Completed" &&
             ((payment.PaymentMethod == SePayMethod && SePayConfigured && await FindSePayTransfer(payment)) ||
              (payment.PaymentMethod == "SePaySandbox" && SandboxConfigured && await FindSandboxOrder(payment))))
         {
             await DatabaseWork.Write(db, async () =>
             {
                 var pending = await db.Set<Payment>().FirstOrDefaultAsync(p =>
-                    p.Id == payment.Id && p.ChargingSessionId == sessionId && p.PaidBy == accountId &&
+                    p.Id == payment.Id && p.ChargingSessionId == sessionId &&
+                    (accountId == null || p.PaidBy == accountId) &&
                     p.PaymentMethod == payment.PaymentMethod && p.Status == "Initiated" && !p.IsDeleted);
                 var active = await db.ChargingSessions.Include(s => s.Connector).FirstOrDefaultAsync(s =>
-                    s.Id == sessionId && s.UserId == accountId && s.Status == "Completed" && !s.IsDeleted);
+                    s.Id == sessionId && s.Status == "Completed" && !s.IsDeleted);
                 if (pending == null || active == null || pending.Amount != payment.Amount ||
                     pending.TxnRef != payment.TxnRef || await db.Transactions.AnyAsync(t => t.PaymentId == pending.Id))
                     return Fail("Yêu cầu thanh toán đã thay đổi.");
@@ -142,8 +142,63 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         }
     }
 
-    public Task<IServiceResult> CreateSePayPayment(Guid sessionId, Guid accountId) =>
+    public Task<IServiceResult> CreateSePayPayment(Guid sessionId, Guid? accountId = null) =>
         Create(sessionId, accountId, false, sePay: true);
+
+    public Task<IServiceResult> ConfirmSePayPayment(Guid sessionId, Guid? accountId = null) => DatabaseWork.Write(db, async () =>
+    {
+        var session = await db.ChargingSessions.Include(s => s.Connector)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && !s.IsDeleted && (accountId == null || s.UserId == null || s.UserId == accountId));
+        if (session == null) return Missing();
+        if (session.Status != "Completed" && session.Status != "Paid")
+            return Fail("Chỉ có thể xác nhận thanh toán cho phiên sạc đã dừng.");
+
+        var payment = await db.Set<Payment>()
+            .Where(p => !p.IsDeleted && p.ChargingSessionId == sessionId)
+            .OrderByDescending(p => p.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (payment == null) return Missing();
+
+        if (payment.Status == "Successed" || session.Status == "Paid")
+        {
+            if (session.Connector != null)
+            {
+                session.Connector.IsLocked = false;
+                session.Connector.UpdatedAt = DateTime.Now;
+            }
+            await db.SaveChangesAsync();
+            return Ok(payment.Adapt<PaymentViewDetailDto>(), "Phiên sạc đã được thanh toán trước đó.");
+        }
+
+        if (payment.Status != "Initiated")
+            return Fail("Yêu cầu thanh toán không ở trạng thái chờ thanh toán.");
+
+        if (await db.Transactions.AnyAsync(t => t.PaymentId == payment.Id))
+            return Fail("Yêu cầu thanh toán đã có bút toán.");
+
+        await Settle(payment, session, "OnlinePayment", "SePay transfer confirmed (user/test)", accountId);
+        await db.SaveChangesAsync();
+
+        return Ok(payment.Adapt<PaymentViewDetailDto>(), "Thanh toán thành công! Trụ sạc đã được mở khóa.");
+    });
+
+    public Task<IServiceResult> ProcessSePayWebhook(string content, decimal amount) => DatabaseWork.Write(db, async () =>
+    {
+        if (string.IsNullOrWhiteSpace(content)) return Fail("Nội dung giao dịch trống");
+        var payment = await db.Set<Payment>()
+            .FirstOrDefaultAsync(p => !p.IsDeleted && p.Status == "Initiated" && content.Contains(p.TxnRef));
+        if (payment == null) return Missing();
+
+        var session = await db.ChargingSessions.Include(s => s.Connector)
+            .FirstOrDefaultAsync(s => s.Id == payment.ChargingSessionId && !s.IsDeleted);
+        if (session == null) return Missing();
+
+        await Settle(payment, session, "OnlinePayment", "SePay webhook confirmation");
+        await db.SaveChangesAsync();
+
+        return Ok(new { success = true }, "Xác nhận webhook thành công");
+    });
 
     private async Task<bool> FindSandboxOrder(Payment payment)
     {
@@ -184,11 +239,13 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
 
     private Task<IServiceResult> Create(Guid sessionId, Guid? accountId, bool offline, bool sePay = false, bool sandbox = false) => DatabaseWork.Write(db, async () =>
     {
-        if (accountId == null) return Fail("Cần đăng nhập tài xế để tạo thanh toán.");
         var session = await db.ChargingSessions.Include(s => s.ChargingPost).ThenInclude(p => p.ChargingStationNavigation)
-            .FirstOrDefaultAsync(s => s.Id == sessionId && !s.IsDeleted && s.UserId == accountId);
+            .FirstOrDefaultAsync(s => s.Id == sessionId && !s.IsDeleted && (accountId == null || s.UserId == null || s.UserId == accountId));
         if (session == null) return Missing();
         if (session.Status != "Completed") return Fail("Chỉ thanh toán phiên đã dừng và chưa thanh toán.");
+        if (accountId == null && session.UserId != null)
+            accountId = session.UserId;
+
         // Lost responses must be reconciled by GET, never by issuing another charge.
         if (await db.Set<Payment>().AnyAsync(p => !p.IsDeleted && p.ChargingSessionId == sessionId &&
             (p.Status == "Initiated" || p.Status == "Successed")))
@@ -218,9 +275,12 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
         await db.SaveChangesAsync();
         if (offline)
         {
-            await notify.NotifyStaffOffLinePaymentRecord(operatorId!.Value, accountId.Value,
-                "Có yêu cầu thanh toán tại quầy cho phiên sạc " + session.Id + ". Chỉ xác nhận sau khi nhận tiền.");
-            await db.SaveChangesAsync();
+            if (operatorId != null && operatorId != Guid.Empty && accountId != null)
+            {
+                await notify.NotifyStaffOffLinePaymentRecord(operatorId.Value, accountId.Value,
+                    "Có yêu cầu thanh toán tại quầy cho phiên sạc " + session.Id + ". Chỉ xác nhận sau khi nhận tiền.");
+                await db.SaveChangesAsync();
+            }
             return Ok(payment.Adapt<PaymentViewDetailDto>(), "Đã ghi nhận yêu cầu; đang chờ nhân viên xác nhận, chưa thanh toán.");
         }
         if (sePay || sandbox)
@@ -251,7 +311,7 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
             if (payment.Amount * 100 != amount) return Ack("04", "Invalid amount");
             var session = await db.ChargingSessions.Include(s => s.Connector).FirstOrDefaultAsync(s =>
                 s.Id == payment.ChargingSessionId && !s.IsDeleted);
-            if (session == null || payment.PaymentMethod != "VNPaySandbox" || payment.PaidBy == null || payment.PaidBy != session.UserId) return Ack("01", "Order not found");
+            if (session == null || payment.PaymentMethod != "VNPaySandbox" || (payment.PaidBy != null && session.UserId != null && payment.PaidBy != session.UserId)) return Ack("01", "Order not found");
             if (payment.Status != "Initiated" || session.Status == "Paid" ||
                 await db.Transactions.AnyAsync(t => t.PaymentId == payment.Id && t.Status == "Completed"))
                 return Ack("02", "Order already confirmed");
@@ -286,7 +346,7 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
             return Missing();
         if (payment.PaymentMethod != "OFFLINE" || payment.Status != "Initiated" || session.Status != "Completed")
             return Fail("Yêu cầu không ở trạng thái chờ nhân viên xác nhận.");
-        if (payment.PaidBy == null || payment.PaidBy != session.UserId || payment.Amount < 0 || payment.BeforeVatAmount != session.Cost || payment.TaxRate is < 0 or > 100 || payment.Amount != Total(payment.BeforeVatAmount, payment.TaxRate))
+        if ((payment.PaidBy != null && session.UserId != null && payment.PaidBy != session.UserId) || payment.Amount < 0 || payment.BeforeVatAmount != session.Cost || payment.TaxRate is < 0 or > 100 || payment.Amount != Total(payment.BeforeVatAmount, payment.TaxRate))
             return Fail("Hóa đơn không khớp với phiên sạc.");
         if (receivedAmount != payment.Amount) return Fail("Số tiền thực thu không khớp hóa đơn.");
         if (await db.Transactions.AnyAsync(t => t.PaymentId == payment.Id))
@@ -337,3 +397,5 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
     private static IServiceResult Ack(string code, string message) => Ok(new { RspCode = code, Message = message });
     private static string Json(string code, string message) => JsonSerializer.Serialize(new { RspCode = code, Message = message });
 }
+
+

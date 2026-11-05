@@ -10,7 +10,6 @@ import 'charging/live_charging_screen.dart';
 import 'charging/qr_scanner_screen.dart';
 import 'booking/my_bookings_screen.dart';
 import 'profile/profile_screen.dart';
-import 'profile/profile_completion_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -89,8 +88,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           : const LoginScreen();
     }
     final chargingProvider = context.watch<ChargingSessionProvider>();
-    if (auth.currentUser?.profileCompleted != true)
-      return const ProfileCompletionScreen();
     final isCharging = chargingProvider.isCharging;
     final hasSession =
         chargingProvider.currentSession != null &&
@@ -101,67 +98,83 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         index: _currentIndex,
         children: List.generate(5, (index) => _tab(index, hasSession)),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: _selectTab,
-          elevation: 0,
-          backgroundColor: Theme.of(context).cardColor,
-          indicatorColor: AppColors.primary.withOpacity(0.18),
-          destinations: [
-            const NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-              label: 'Trang chủ',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.map_outlined),
-              selectedIcon: Icon(Icons.map_rounded, color: AppColors.primary),
-              label: 'Bản đồ',
-            ),
-            NavigationDestination(
-              icon: isCharging
-                  ? const Badge(
-                      label: Text('1'),
-                      child: Icon(Icons.bolt, color: AppColors.accent),
-                    )
-                  : const Icon(Icons.qr_code_scanner_rounded),
-              selectedIcon: Icon(
-                isCharging ? Icons.bolt_rounded : Icons.qr_code_scanner_rounded,
-                color: isCharging ? AppColors.accent : AppColors.primary,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.borderDark
+                    : AppColors.borderLight,
+                width: 1,
               ),
-              label: isCharging
-                  ? 'Đang sạc'
-                  : hasSession
-                  ? 'Hóa đơn'
-                  : 'Quét QR',
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            const NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined),
-              selectedIcon: Icon(
-                Icons.calendar_month_rounded,
-                color: AppColors.primary,
-              ),
-              label: 'Lịch đặt',
+            clipBehavior: Clip.antiAlias,
+            child: NavigationBar(
+              selectedIndex: _currentIndex,
+              onDestinationSelected: _selectTab,
+              elevation: 0,
+              height: 64,
+              backgroundColor: Theme.of(context).cardColor,
+              indicatorColor: AppColors.primary.withOpacity(0.18),
+              destinations: [
+                const NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
+                  label: 'Trang chủ',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.map_outlined),
+                  selectedIcon: Icon(Icons.map_rounded, color: AppColors.primary),
+                  label: 'Bản đồ',
+                ),
+                NavigationDestination(
+                  icon: isCharging
+                      ? const Badge(
+                          label: Text('1'),
+                          child: Icon(Icons.bolt, color: AppColors.accent),
+                        )
+                      : const Icon(Icons.qr_code_scanner_rounded),
+                  selectedIcon: Icon(
+                    isCharging ? Icons.bolt_rounded : Icons.qr_code_scanner_rounded,
+                    color: isCharging ? AppColors.accent : AppColors.primary,
+                  ),
+                  label: isCharging
+                      ? 'Đang sạc'
+                      : hasSession
+                      ? 'Hóa đơn'
+                      : 'Quét QR',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.calendar_month_outlined),
+                  selectedIcon: Icon(
+                    Icons.calendar_month_rounded,
+                    color: AppColors.primary,
+                  ),
+                  label: 'Lịch đặt',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(
+                    Icons.person_rounded,
+                    color: AppColors.primary,
+                  ),
+                  label: 'Tài khoản',
+                ),
+              ],
             ),
-            const NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(
-                Icons.person_rounded,
-                color: AppColors.primary,
-              ),
-              label: 'Tài khoản',
-            ),
-          ],
+          ),
         ),
       ),
     );

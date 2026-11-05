@@ -134,7 +134,7 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
       data: {
         'driverId': driverId,
         'name': widget.name.trim(),
-        'phoneNumber': widget.phone.trim(),
+        'phoneNumber': widget.phone.trim().isEmpty ? null : widget.phone.trim(),
         'address': auth.currentUser?.address,
         'profilePictureUrl': auth.currentUser?.avatar,
         'vehicleModelIds': updatedVehicles,

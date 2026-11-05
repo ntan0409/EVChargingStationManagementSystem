@@ -28,6 +28,8 @@ EVChargingStationManagementSystem/
 
 ## Setup cho cả nhóm trên Windows
 
+Sau khi cài các công cụ và đặt `appsettings.Local.json` ở thư mục gốc, bấm đúp `RUN_DEMO.cmd` để mở backend, Android Emulator và app. Lần đầu chuẩn bị APK. Những lần sau dùng lại APK đã cài, chỉ build lại khi mã nguồn thay đổi. Giữ cửa sổ báo lỗi nếu có để xem bước nào chưa chạy được. Nhật ký backend nằm trong `.artifacts/demo-launcher` và có mật khẩu demo cục bộ.
+
 1. Cài .NET SDK 9 hoặc SDK mới hơn có runtime .NET 9.
 2. Cài Flutter stable 3.47.6 (Dart 3.13.5), phiên bản đã dùng để kiểm thử.
 3. Cài SQL Server Express LocalDB với instance mặc định `MSSQLLocalDB`.

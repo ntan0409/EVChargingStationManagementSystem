@@ -6,7 +6,7 @@
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+  background: linear-gradient(135deg, #090d16 0%, #064e3b 50%, #10b981 100%);
   overflow-x: hidden;
   position: relative;
 }
@@ -58,7 +58,7 @@
 
 .login-body * {
   box-sizing: border-box;
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* Page Wrapper */
@@ -100,7 +100,7 @@
 
 /* Left Side - Branding */
 .login-branding {
-  background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+  background: linear-gradient(135deg, #090d16 0%, #064e3b 50%, #10b981 100%);
   padding: 60px 40px;
   display: flex;
   align-items: center;
@@ -292,7 +292,7 @@
 }
 
 .input-wrapper .input-field:focus {
-  border-color: #00b09b;
+  border-color: #10b981;
   background: rgba(255, 255, 255, 1);
   box-shadow: 0 0 0 4px rgba(0, 176, 155, 0.1);
 }
@@ -316,7 +316,7 @@
 }
 
 .input-wrapper .input-field:focus~.input-icon {
-  color: #00b09b;
+  color: #10b981;
 }
 
 /* Eye Icon Button (Right) */
@@ -339,7 +339,7 @@
 
 .input-wrapper .eye-icon-button:hover {
   background: #f3f4f6;
-  color: #00b09b;
+  color: #10b981;
 }
 
 .input-wrapper .eye-icon-button:active {
@@ -354,7 +354,7 @@
 
 .forgot-link {
   font-size: 14px;
-  color: #00b09b;
+  color: #10b981;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -387,7 +387,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+  background: linear-gradient(135deg, #090d16 0%, #064e3b 50%, #10b981 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -439,7 +439,7 @@
 }
 
 .signup-link {
-  color: #00b09b;
+  color: #10b981;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;

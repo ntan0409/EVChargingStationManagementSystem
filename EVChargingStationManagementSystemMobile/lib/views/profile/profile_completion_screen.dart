@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../widgets/custom_button.dart';
 import 'vehicle_selection_screen.dart';
 import '../payment/transaction_history_screen.dart';
+import '../main_navigation_screen.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
   final List<String>? missingRequirements;
@@ -49,6 +50,17 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     super.dispose();
   }
 
+  void _skipForNow() {
+    if (widget.onCompleted != null) {
+      widget.onCompleted!();
+    } else {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
+      );
+    }
+  }
+
   void _goToVehicleSelection() {
     if (!_form.currentState!.validate()) return;
 
@@ -65,7 +77,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
   String _reason(String code) => switch (code) {
     'name' => 'Họ và tên',
-    'phoneNumber' => 'Số điện thoại',
+    'phoneNumber' => 'Số điện thoại (tùy chọn)',
     'emailVerification' => 'Email đã xác minh',
     'supportedVehicle' => 'Phương tiện hợp lệ',
     'accountInactive' => 'Tài khoản/hồ sơ đang bị khóa',
@@ -85,6 +97,16 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         title: const Text('Hoàn tất hồ sơ'),
         centerTitle: true,
         actions: [
+          TextButton(
+            onPressed: _skipForNow,
+            child: const Text(
+              'Để sau',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Đăng xuất',
             onPressed: auth.logout,
@@ -134,7 +156,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                               ),
                               const SizedBox(width: 12),
                               const Text(
-                                'Bước 1: Thông tin liên hệ',
+                                'Bước 1: Thông tin cá nhân',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -145,7 +167,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           ),
                           const SizedBox(height: 10),
                           const Text(
-                            'Vui lòng nhập họ tên và số điện thoại trước khi chọn phương tiện di chuyển của bạn.',
+                            'Vui lòng kiểm tra họ tên và số điện thoại (tùy chọn) trước khi chọn phương tiện di chuyển. Bạn có thể bổ sung số điện thoại bất kỳ lúc nào sau này.',
                             style: TextStyle(
                               fontSize: 13.5,
                               color: Colors.black87,
@@ -221,12 +243,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Phone Field
+                          // Phone Field (Optional)
                           TextFormField(
                             controller: _phone,
                             decoration: InputDecoration(
-                              labelText: 'Số điện thoại',
-                              hintText: 'VD: 0918306884',
+                              labelText: 'Số điện thoại (tùy chọn)',
+                              hintText: 'VD: 0918306884 (có thể cập nhật sau)',
                               prefixIcon: const Icon(Icons.phone_outlined),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -250,7 +272,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                               if (v == null ||
                                   v.trim().isEmpty ||
                                   v.contains('Chưa cập nhật')) {
-                                return 'Vui lòng nhập số điện thoại';
+                                return null; // Số điện thoại tùy chọn, có thể thêm sau
                               }
                               return Validators.phone(v);
                             },
@@ -263,7 +285,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               ),
             ),
 
-            // Bottom Action - Duy nhất nút Tiếp tục
+            // Bottom Action
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -282,6 +304,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   CustomButton(
                     text: 'Tiếp tục chọn xe',
                     onPressed: _goToVehicleSelection,
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _skipForNow,
+                    child: const Text('Bỏ qua, vào màn hình chính'),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(

@@ -4,7 +4,7 @@ import { HTTP_ERROR_MESSAGES } from "./constants/httpErrors";
 // Đọc biến môi trường theo Vite, fallback về localhost để dev nhanh
 const apiUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
     (typeof process !== 'undefined' ? process.env?.VITE_API_URL : undefined) ||
-    'https://localhost:7252/api';
+    'http://localhost:5058/api';
 
 const api = axios.create({
     baseURL: apiUrl,

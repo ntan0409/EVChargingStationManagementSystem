@@ -1,6 +1,6 @@
 // src/components/RealDemo/StationList.jsx
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Spin } from "antd";
+import { Card, Row, Col, Spin, Button, Alert } from "antd";
 import { useNavigate } from "react-router-dom";
 import stationAPI from "../API/Station";
 
@@ -15,29 +15,35 @@ const statusMap = {
 const StationList = () => {
     const [stations, setStations] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchStations = async () => {
-            setLoading(true);
-            try {
-                const response = await stationAPI.getChargingStation();
-                if (Array.isArray(response.data)) {
-                    setStations(response.data);
-                } else if (Array.isArray(response.data?.data)) {
-                    setStations(response.data.data);
-                } else {
-                    console.error("Dữ liệu trả về không phải array:", response);
-                    setStations([]);
-                }
-            } catch (error) {
-                console.error("Lỗi khi lấy danh sách trạm:", error);
-                setStations([]);
-            } finally {
-                setLoading(false);
+    const fetchStations = async () => {
+        setLoading(true);
+        setErrorMsg("");
+        try {
+            const response = await stationAPI.getChargingStation();
+            const list = Array.isArray(response)
+                ? response
+                : Array.isArray(response?.data)
+                ? response.data
+                : Array.isArray(response?.data?.data)
+                ? response.data.data
+                : [];
+            setStations(list);
+            if (list.length === 0) {
+                console.warn("Không có trạm sạc nào hoặc dữ liệu không khớp:", response);
             }
-        };
+        } catch (error) {
+            console.error("Lỗi khi lấy danh sách trạm:", error);
+            setErrorMsg(error?.customMessage || error?.message || "Không thể tải danh sách trạm sạc. Vui lòng thử lại.");
+            setStations([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchStations();
     }, []);
 
@@ -51,8 +57,24 @@ const StationList = () => {
 
     return (
         <div style={{ padding: "20px" }}>
-            <h2>Danh sách trạm sạc</h2>
-            {stations.length === 0 ? (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h2 style={{ margin: 0 }}>Danh sách trạm sạc</h2>
+                <Button onClick={fetchStations} type="primary" ghost>
+                    Làm mới danh sách
+                </Button>
+            </div>
+
+            {errorMsg && (
+                <Alert
+                    message="Lỗi kết nối"
+                    description={errorMsg}
+                    type="error"
+                    showIcon
+                    style={{ marginBottom: 20 }}
+                />
+            )}
+
+            {stations.length === 0 && !errorMsg ? (
                 <p>Chưa có trạm sạc nào.</p>
             ) : (
                 <Row gutter={[16, 16]}>

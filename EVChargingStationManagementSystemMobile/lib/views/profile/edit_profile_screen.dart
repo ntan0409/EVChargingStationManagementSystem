@@ -164,7 +164,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Icons.phone_outlined,
                   color: AppColors.primary,
                 ),
-                validator: Validators.phone,
+                validator: (val) { if (val == null || val.trim().isEmpty) return null; return Validators.phone(val); },
               ),
               const SizedBox(height: 16),
 

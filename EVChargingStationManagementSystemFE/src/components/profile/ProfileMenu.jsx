@@ -5,6 +5,7 @@ import { logout } from "../../API/Auth";
 import { getEVDriverProfile } from "../../API/EVDriver";
 import { MyBooking } from "../../API/Booking";
 import { jwtDecode } from "jwt-decode";
+import { User, Car, Clock, Zap, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
 
 const ProfileMenu = () => {
   const [open, setOpen] = useState(false);
@@ -14,7 +15,6 @@ const ProfileMenu = () => {
   const navigate = useNavigate();
   const menuRef = useRef();
 
-  // Lấy role từ token khi component mount
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -28,7 +28,6 @@ const ProfileMenu = () => {
     }
   }, []);
 
-  // Nếu là EVDriver → gọi API lấy avatar
   useEffect(() => {
     if (role === "EVDriver") {
       (async () => {
@@ -43,13 +42,13 @@ const ProfileMenu = () => {
     }
   }, [role]);
 
-  // Ảnh đại diện
   const avatarSrc =
     role === "EVDriver"
       ? driverProfile?.profilePictureUrl || "https://cdn-icons-png.flaticon.com/512/847/847969.png"
       : "https://cdn-icons-png.flaticon.com/512/847/847969.png";
 
-  // Đóng menu khi click ra ngoài
+  const displayName = driverProfile?.name || (role === "Admin" ? "Quản Trị Viên" : role === "Staff" ? "Nhân Viên" : "Tài Xế EV");
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -68,53 +67,84 @@ const ProfileMenu = () => {
   const handleSimulate = async () => {
     try {
       const res = await MyBooking();
-
       const bookings = res?.data || [];
       if (bookings.length === 0) {
-        // Không có booking → vào mô phỏng sạc bình thường
         navigate("/station-list");
         return;
       }
-
-      // Có booking → lấy booking đầu tiên
       const booking = bookings[0];
-
       const stationId = booking.stationId;
       const postId = booking.chargingPostId;
       const connectorId = booking.connectorId;
-
-      // Điều hướng đến trang session
       navigate(`/station-list/${stationId}/posts/${postId}/connector/${connectorId}/session`);
     } catch (err) {
       console.error("Lỗi xem booking:", err);
       navigate("/station-list");
     }
-
     setOpen(false);
   };
 
   return (
     <div className="profile-container" ref={menuRef}>
-      <div className="profile-trigger" onClick={() => setOpen(!open)}>
-        <img src={avatarSrc} alt="User Avatar" className="avatar" />
+      <div className={`profile-pill-trigger ${open ? "active" : ""}`} onClick={() => setOpen(!open)}>
+        <img src={avatarSrc} alt="Avatar" className="user-avatar" />
+        <div className="trigger-user-info">
+          <span className="user-display-name">{displayName}</span>
+          <span className="user-role-badge">
+            <ShieldCheck size={11} />
+            <span>{role || "Thành viên"}</span>
+          </span>
+        </div>
+        <ChevronDown size={14} className={`dropdown-arrow ${open ? "rotate" : ""}`} />
       </div>
 
       {open && (
-        <div className="profile-dropdown">
-          <button onClick={() => handleNavigate("/profile-page")}>
-            Thông tin tài khoản
-          </button>
+        <div className="profile-dropdown-card">
+          <div className="dropdown-header">
+            <p className="dropdown-title">Tài Khoản EVOne</p>
+            <p className="dropdown-subtitle">{displayName}</p>
+          </div>
 
-          {role === "EVDriver" && (
-            <button onClick={() => handleNavigate("/profile")}>Thông tin cá nhân</button>
-          )}
+          <div className="dropdown-menu-list">
+            <button className="dropdown-item" onClick={() => handleNavigate("/profile")}>
+              <User size={16} />
+              <span>Hồ sơ & Trung tâm tài xế</span>
+            </button>
 
-          <button onClick={() => handleNavigate("/order-charging")}>Đặt chỗ sạc</button>
-          <button onClick={() => handleNavigate("/orders")}>Lịch sử đặt hàng</button>
-          <button onClick={handleSimulate}>Mô Phỏng Sạc</button>
+            {role === "EVDriver" && (
+              <button className="dropdown-item" onClick={() => handleNavigate("/car")}>
+                <Car size={16} />
+                <span>Garage xe điện của tôi</span>
+              </button>
+            )}
 
-          <button className="logout-btn" onClick={() => { logout(); setOpen(false); }}>
-            Đăng xuất
+            <button className="dropdown-item" onClick={() => handleNavigate("/order-charging")}>
+              <Zap size={16} />
+              <span>Đặt chỗ sạc trước</span>
+            </button>
+
+            <button className="dropdown-item" onClick={() => handleNavigate("/orders")}>
+              <Clock size={16} />
+              <span>Lịch sử đặt sạc</span>
+            </button>
+
+            <button className="dropdown-item" onClick={handleSimulate}>
+              <Zap size={16} />
+              <span>Mô phỏng sạc trực tiếp</span>
+            </button>
+          </div>
+
+          <div className="dropdown-divider"></div>
+
+          <button
+            className="dropdown-item logout-action"
+            onClick={() => {
+              logout();
+              setOpen(false);
+            }}
+          >
+            <LogOut size={16} />
+            <span>Đăng xuất</span>
           </button>
         </div>
       )}

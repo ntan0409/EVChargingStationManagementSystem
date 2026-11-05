@@ -77,19 +77,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         children: [
                           Container(
-                            width: 48,
-                            height: 48,
+                            width: 50,
+                            height: 50,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.primary.withOpacity(0.15),
+                              color: AppColors.primaryContainer,
+                              border: Border.all(color: AppColors.primary.withOpacity(0.35), width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.15),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
                             child: ClipOval(
                               child: (user?.avatar != null &&
                                       user!.avatar!.trim().isNotEmpty)
                                   ? Image.network(
                                       user.avatar!.trim(),
-                                      width: 48,
-                                      height: 48,
+                                      width: 50,
+                                      height: 50,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) =>
@@ -100,8 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   .toUpperCase()
                                               : 'U',
                                           style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w800,
                                             color: AppColors.primary,
                                           ),
                                         ),
@@ -114,8 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 .toUpperCase()
                                             : 'U',
                                         style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
                                           color: AppColors.primary,
                                         ),
                                       ),
@@ -127,20 +135,46 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Xin chào,',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade600,
-                                  ),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.bolt, color: AppColors.primary, size: 14),
+                                    const Text(
+                                      'EVOne',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppColors.primary,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      width: 5,
+                                      height: 5,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Trực tuyến',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 Text(
                                   user?.name ?? 'Tài xế EV',
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
                               ],

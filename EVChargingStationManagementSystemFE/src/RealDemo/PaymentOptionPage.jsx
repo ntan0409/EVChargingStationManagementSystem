@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowRight, CheckCircle, CreditCard, Store, Receipt, Copy, Check, RefreshCw, QrCode } from "lucide-react";
 import "../components/Payment/PaymentPage.css";
 import { Modal, Select, Divider, Card, Row, Col, message, Button, Spin, Tag } from "antd";
-import { PostPaymentOffline, PostPaymentSePay, GetSessionPayment } from "../API/Payment";
+import { PostPaymentOffline, PostPaymentSePay, ConfirmPaymentSePay, GetSessionPayment } from "../API/Payment";
 import { GetAdminVouchers } from "../API/Voucher";
 
 const { Option } = Select;
@@ -189,6 +189,26 @@ const PaymentOptionPage = () => {
             message.error(errMsg);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleConfirmTransfer = async () => {
+        if (!sessionId) return;
+        setSePayChecking(true);
+        try {
+            const resp = await ConfirmPaymentSePay(sessionId);
+            setSePayPaid(true);
+            try { sessionStorage.setItem('payment.paid', 'true'); } catch { }
+            if (pollingTimerRef.current) {
+                clearInterval(pollingTimerRef.current);
+                pollingTimerRef.current = null;
+            }
+            message.success(resp?.message || "Xác nhận thanh toán thành công! Trụ sạc đã được mở khóa.");
+        } catch (err) {
+            const errMsg = err?.response?.data?.message || "Không thể xác nhận thanh toán";
+            message.error(errMsg);
+        } finally {
+            setSePayChecking(false);
         }
     };
 
@@ -495,7 +515,8 @@ const PaymentOptionPage = () => {
                                 <Button
                                     type="primary"
                                     style={{ background: '#00b09b', borderColor: '#00b09b' }}
-                                    onClick={handleReturnToSession}
+                                    loading={sePayChecking}
+                                    onClick={handleConfirmTransfer}
                                 >
                                     Đã chuyển khoản xong
                                 </Button>

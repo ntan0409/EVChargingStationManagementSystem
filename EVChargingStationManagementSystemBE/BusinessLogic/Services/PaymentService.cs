@@ -145,6 +145,61 @@ public class PaymentService(EVCSMSContext db, IConfiguration config, INotificati
     public Task<IServiceResult> CreateSePayPayment(Guid sessionId, Guid? accountId = null) =>
         Create(sessionId, accountId, false, sePay: true);
 
+    public Task<IServiceResult> ConfirmSePayPayment(Guid sessionId, Guid? accountId = null) => DatabaseWork.Write(db, async () =>
+    {
+        var session = await db.ChargingSessions.Include(s => s.Connector)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && !s.IsDeleted && (accountId == null || s.UserId == null || s.UserId == accountId));
+        if (session == null) return Missing();
+        if (session.Status != "Completed" && session.Status != "Paid")
+            return Fail("Chỉ có thể xác nhận thanh toán cho phiên sạc đã dừng.");
+
+        var payment = await db.Set<Payment>()
+            .Where(p => !p.IsDeleted && p.ChargingSessionId == sessionId)
+            .OrderByDescending(p => p.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (payment == null) return Missing();
+
+        if (payment.Status == "Successed" || session.Status == "Paid")
+        {
+            if (session.Connector != null)
+            {
+                session.Connector.IsLocked = false;
+                session.Connector.UpdatedAt = DateTime.Now;
+            }
+            await db.SaveChangesAsync();
+            return Ok(payment.Adapt<PaymentViewDetailDto>(), "Phiên sạc đã được thanh toán trước đó.");
+        }
+
+        if (payment.Status != "Initiated")
+            return Fail("Yêu cầu thanh toán không ở trạng thái chờ thanh toán.");
+
+        if (await db.Transactions.AnyAsync(t => t.PaymentId == payment.Id))
+            return Fail("Yêu cầu thanh toán đã có bút toán.");
+
+        await Settle(payment, session, "OnlinePayment", "SePay transfer confirmed (user/test)", accountId);
+        await db.SaveChangesAsync();
+
+        return Ok(payment.Adapt<PaymentViewDetailDto>(), "Thanh toán thành công! Trụ sạc đã được mở khóa.");
+    });
+
+    public Task<IServiceResult> ProcessSePayWebhook(string content, decimal amount) => DatabaseWork.Write(db, async () =>
+    {
+        if (string.IsNullOrWhiteSpace(content)) return Fail("Nội dung giao dịch trống");
+        var payment = await db.Set<Payment>()
+            .FirstOrDefaultAsync(p => !p.IsDeleted && p.Status == "Initiated" && content.Contains(p.TxnRef));
+        if (payment == null) return Missing();
+
+        var session = await db.ChargingSessions.Include(s => s.Connector)
+            .FirstOrDefaultAsync(s => s.Id == payment.ChargingSessionId && !s.IsDeleted);
+        if (session == null) return Missing();
+
+        await Settle(payment, session, "OnlinePayment", "SePay webhook confirmation");
+        await db.SaveChangesAsync();
+
+        return Ok(new { success = true }, "Xác nhận webhook thành công");
+    });
+
     private async Task<bool> FindSandboxOrder(Payment payment)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get,

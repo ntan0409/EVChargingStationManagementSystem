@@ -263,8 +263,20 @@ namespace BusinessLogic.Services
                 if (status == ConnectorStatus.Charging)
                     return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang sạc, không thể thay đổi trạng thái.");
 
-                if (connector.IsLocked && status != ConnectorStatus.Available)
-                    return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang bị khóa. Hãy thanh toán để mở khóa.");
+                // Nếu connector đang bị khóa, kiểm tra xem còn phiên sạc nào chưa thanh toán hay không
+                if (connector.IsLocked)
+                {
+                    var hasUnpaidSession = await db.ChargingSessions.AnyAsync(s =>
+                        !s.IsDeleted && s.ConnectorId == connectorId && (s.Status == "Charging" || s.Status == "Completed"));
+                    if (!hasUnpaidSession)
+                    {
+                        connector.IsLocked = false;
+                    }
+                    else if (status != ConnectorStatus.Available)
+                    {
+                        return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang bị khóa. Hãy thanh toán để mở khóa.");
+                    }
+                }
 
                 if (status == ConnectorStatus.Reserved && toggle == false)
                     return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang được đặt trước, không thể cắm vào.");

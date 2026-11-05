@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button, message, Card, Space } from "antd";
 import { useNavigate } from "react-router-dom";
-import { PostPayment, PostPaymentOffline } from "../API/Payment";
+import { PostPaymentOffline, PostPaymentSePay } from "../API/Payment";
 
 const PaymentOption = ({ sessionId }) => {
     const [loading, setLoading] = useState(false);
@@ -9,7 +9,6 @@ const PaymentOption = ({ sessionId }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Đảm bảo lưu sessionId để các trang khác có thể dùng nếu cần
         if (sessionId) {
             try {
                 sessionStorage.setItem('payment.sessionId', String(sessionId));
@@ -17,21 +16,9 @@ const PaymentOption = ({ sessionId }) => {
         }
     }, [sessionId]);
 
-    const handleOnlinePayment = async () => {
-        setLoading(true);
-        try {
-            const resp = await PostPayment(sessionId);
-            message.success(resp?.message || "Tạo url thanh toán thành công");
-            const url = resp?.data;
-            if (url) {
-                window.location.href = url; // redirect sang VNPAY sandbox
-            } else {
-                message.error("Không tìm thấy URL thanh toán");
-            }
-        } catch (err) {
-            message.error("Không thể tạo thanh toán online");
-        } finally {
-            setLoading(false);
+    const handleOnlinePayment = () => {
+        if (sessionId) {
+            navigate(`/payment-method/${sessionId}`);
         }
     };
 
@@ -41,7 +28,6 @@ const PaymentOption = ({ sessionId }) => {
             const resp = await PostPaymentOffline(sessionId);
             message.success(resp?.message || "Ghi nhận thanh toán offline thành công");
             const id = resp?.data?.id ?? resp?.data;
-            console.log("Offline paymentId:", sessionId);
             if (id) {
                 setPaymentId(id);
                 try { sessionStorage.setItem('payment.paid', 'true'); } catch { }
@@ -59,8 +45,8 @@ const PaymentOption = ({ sessionId }) => {
         <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-pink-50 to-white">
             <Card className="w-full max-w-md rounded-2xl shadow-lg border border-pink-100" title="Chọn phương thức thanh toán">
                 <Space direction="vertical" className="w-full">
-                    <Button type="primary" loading={loading} onClick={handleOnlinePayment}>
-                        Thanh toán Online (VNPAY)
+                    <Button type="primary" loading={loading} onClick={handleOnlinePayment} style={{ background: '#00b09b', borderColor: '#00b09b' }}>
+                        Thanh toán Chuyển khoản (SePay / VietQR)
                     </Button>
                     <Button onClick={handleOfflinePayment} loading={loading}>
                         Thanh toán Tiền mặt tại quầy

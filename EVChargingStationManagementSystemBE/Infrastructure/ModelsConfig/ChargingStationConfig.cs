@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Infrastructure.Models;
 
@@ -14,7 +14,7 @@ namespace Infrastructure.ModelsConfig
                    .WithMany(ua => ua.ChargingStations)
                    .HasForeignKey(cs => cs.OperatorId)
                    .OnDelete(DeleteBehavior.Restrict);
-            builder.HasIndex(builder => builder.OperatorId).IsUnique(true);
+            builder.HasIndex(builder => builder.OperatorId);
         }
     }
 }

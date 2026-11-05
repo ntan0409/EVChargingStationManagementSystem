@@ -1,4 +1,4 @@
-﻿using BusinessLogic.Base;
+using BusinessLogic.Base;
 using BusinessLogic.IServices;
 using Common;
 using Common.DTOs.ConnectorDto;
@@ -263,7 +263,7 @@ namespace BusinessLogic.Services
                 if (status == ConnectorStatus.Charging)
                     return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang sạc, không thể thay đổi trạng thái.");
 
-                if (connector.IsLocked)
+                if (connector.IsLocked && status != ConnectorStatus.Available)
                     return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang bị khóa. Hãy thanh toán để mở khóa.");
 
                 if (status == ConnectorStatus.Reserved && toggle == false)
@@ -299,8 +299,12 @@ namespace BusinessLogic.Services
 
                 // ================== ✔ Cập nhật trạng thái ==================
 
-                if (connector.IsLocked)
+                if (connector.IsLocked && status != ConnectorStatus.Available)
                     return new ServiceResult(Const.FAIL_UPDATE_CODE, "Cổng đang khóa; không được thay đổi khi còn phiên hoặc hóa đơn.");
+
+                if (status == ConnectorStatus.Available)
+                    connector.IsLocked = false;
+
                 connector.IsPluggedIn = isPlugIn;
                 if (isUnplug) // TRUE = RÚT
                 {

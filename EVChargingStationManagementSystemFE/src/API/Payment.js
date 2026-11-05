@@ -12,6 +12,25 @@ export const PostPayment = async (sessionId) => {
     }
 };
 
+export const PostPaymentSePay = async (sessionId) => {
+    try {
+        const response = await api.post(`${BASE_URL}/sepay-test?sessionId=${sessionId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi tạo payment SePay:', error);
+        throw error;
+    }
+};
+
+export const GetSessionPayment = async (sessionId) => {
+    try {
+        const response = await api.get(`${BASE_URL}/session/${sessionId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi kiểm tra payment session:', error);
+        throw error;
+    }
+};
 
 export const PostPaymentOffline = async (sessionId) => {
     try {

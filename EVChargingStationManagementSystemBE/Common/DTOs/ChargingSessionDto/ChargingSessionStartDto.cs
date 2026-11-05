@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Common.DTOs.ChargingSessionDto
 {
@@ -17,9 +17,9 @@ namespace Common.DTOs.ChargingSessionDto
             Range(0, 100, ErrorMessage = "Mức pin mong muốn sạc tới phải từ 0 đến 100")]
         public int ExpectedEnergiesKWh { get; set; } // Expected energy to be charged in kWh
 
-        [RegularExpression(@"^(?:\+84|0)(?:3[2-9]|5[2689]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7}$",
+        [RegularExpression(@"^(?:(?:\+84|0)(?:3[2-9]|5[2689]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7})?$",
         ErrorMessage = "Số điện thoại không hợp lệ")]
-        public string Phone { get; set; } = string.Empty;
+        public string? Phone { get; set; }
 
         [Required(ErrorMessage = "Cần cắm cổng sạc")]
         public Guid ConnectorId { get; set; }

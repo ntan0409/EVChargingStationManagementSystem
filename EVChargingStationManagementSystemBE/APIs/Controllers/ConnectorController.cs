@@ -1,4 +1,4 @@
-﻿using BusinessLogic.IServices;
+using BusinessLogic.IServices;
 using Common;
 using Common.DTOs.ConnectorDto;
 using Common.Enum.Connector;
@@ -81,26 +81,8 @@ namespace APIs.Controllers
             return StatusCode(500, new { message = result.Message });
         }
 
-        //[HttpPatch("status")]
-        //[Authorize(Roles = "Admin, Staff")]
-        //public async Task<IActionResult> UpdateStatus([FromQuery] ConnectorUpdateStatus status, Guid connectorId)
-        //{
-        //    var result = await _service.UpdateStatus(status, connectorId);
-
-        //    if (result.Status == Const.SUCCESS_UPDATE_CODE)
-        //        return Ok(new { data = result.Data, message = result.Message });
-
-        //    if (result.Status == Const.WARNING_NO_DATA_CODE)
-        //        return NotFound(new { message = result.Message });
-
-        //    if (result.Status == Const.FAIL_UPDATE_CODE)
-        //        return Conflict(new { message = result.Message });
-
-        //    return StatusCode(500, new { message = result.Message });
-        //}
-
         [HttpPatch("connector-toggle")]
-        [Authorize(Roles = "Admin,Staff")]
+        [AllowAnonymous]
         public async Task<IActionResult> UpdateConnectorCount(bool toggle, Guid connectorId)
         {
             var result = await _service.UpdateConnectorCount(toggle, connectorId);

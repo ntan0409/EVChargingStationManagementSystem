@@ -10,28 +10,28 @@ namespace APIs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "EVDriver,Admin,Staff")]
 public class PaymentController(IPaymentService service) : ControllerBase
 {
     [HttpGet("methods")]
+    [AllowAnonymous]
     public IActionResult Methods() => Result(service.GetMethods());
 
     [HttpGet("session/{sessionId:guid}")]
-    [Authorize(Roles = "EVDriver")]
-    public async Task<IActionResult> SessionPayment(Guid sessionId) => Result(await service.GetSessionPayment(sessionId, User.GetUserId()));
+    [AllowAnonymous]
+    public async Task<IActionResult> SessionPayment(Guid sessionId) => Result(await service.GetSessionPayment(sessionId, User.TryGetUserId()));
 
     [HttpPost]
-    [Authorize(Roles = "EVDriver")]
-    public async Task<IActionResult> CreatePaymentURL([FromQuery] Guid sessionId) => Result(await service.CreatePaymentURL(sessionId, User.GetUserId()));
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatePaymentURL([FromQuery] Guid sessionId) => Result(await service.CreatePaymentURL(sessionId, User.TryGetUserId()));
 
     [HttpPost("sepay-test")]
-    [Authorize(Roles = "EVDriver")]
+    [AllowAnonymous]
     public async Task<IActionResult> CreateSePayPayment([FromQuery] Guid sessionId) =>
-        Result(await service.CreateSePayPayment(sessionId, User.GetUserId()));
+        Result(await service.CreateSePayPayment(sessionId, User.TryGetUserId()));
 
     [HttpPost("offline")]
-    [Authorize(Roles = "EVDriver")]
-    public async Task<IActionResult> CreatePaymentOfflineRecord([FromQuery] Guid sessionId) => Result(await service.CreatePaymentOfflineRecord(sessionId, User.GetUserId()));
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatePaymentOfflineRecord([FromQuery] Guid sessionId) => Result(await service.CreatePaymentOfflineRecord(sessionId, User.TryGetUserId()));
 
     [HttpPatch("offline-status")]
     [Authorize(Roles = "Staff")]

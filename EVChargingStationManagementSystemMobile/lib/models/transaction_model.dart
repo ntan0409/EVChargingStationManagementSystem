@@ -11,6 +11,8 @@ class TransactionModel {
   final String? chargingSessionId;
   final String? paymentMethod;
   final String? paymentReference;
+  final int? powerRateKW;
+  final double? energyDeliveredKWh;
   final DateTime? initiatedAt;
   final DateTime? completedAt;
   TransactionModel({
@@ -23,6 +25,8 @@ class TransactionModel {
     this.chargingSessionId,
     this.paymentMethod,
     this.paymentReference,
+    this.powerRateKW,
+    this.energyDeliveredKWh,
     this.initiatedAt,
     this.completedAt,
   });
@@ -47,6 +51,12 @@ class TransactionModel {
           : contractId(json['chargingSessionId']),
       paymentMethod: json['paymentMethod'] as String?,
       paymentReference: json['paymentReference'] as String?,
+      powerRateKW: json['powerRateKW'] is int
+          ? json['powerRateKW']
+          : int.tryParse(json['powerRateKW']?.toString() ?? ''),
+      energyDeliveredKWh: json['energyDeliveredKWh'] == null
+          ? null
+          : contractNumber(json['energyDeliveredKWh']),
       initiatedAt: contractDate(json['initiatedAt']),
       completedAt: contractDate(json['completedAt']),
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/charging_session_provider.dart';
 import '../../providers/payment_provider.dart';
@@ -231,6 +232,30 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
               ),
             ),
           const SizedBox(height: 20),
+          if (quote?.payment?.paymentMethod == 'SePayTest' &&
+              quote?.hasPendingPayment == true) ...[
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: provider.isLoading
+                  ? null
+                  : () async {
+                      final ok = await provider.confirmSePayTest(widget.sessionId);
+                      if (ok && mounted) {
+                        await _read();
+                      }
+                    },
+              child: Text(
+                provider.isLoading
+                    ? 'Đang xác nhận...'
+                    : 'Xác nhận chuyển tiền thành công (SePay Test)',
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: provider.checking ? null : _read,
             child: const Text('Kiểm tra lại trạng thái'),

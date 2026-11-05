@@ -89,14 +89,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     }
     final chargingProvider = context.watch<ChargingSessionProvider>();
     final isCharging = chargingProvider.isCharging;
-    final hasSession =
-        chargingProvider.currentSession != null &&
-        chargingProvider.currentSession!.status != 'Paid';
 
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: List.generate(5, (index) => _tab(index, hasSession)),
+        children: List.generate(5, (index) => _tab(index, isCharging)),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
@@ -150,11 +147,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                     isCharging ? Icons.bolt_rounded : Icons.qr_code_scanner_rounded,
                     color: isCharging ? AppColors.accent : AppColors.primary,
                   ),
-                  label: isCharging
-                      ? 'Đang sạc'
-                      : hasSession
-                      ? 'Hóa đơn'
-                      : 'Quét QR',
+                  label: isCharging ? 'Đang sạc' : 'Quét QR',
                 ),
                 const NavigationDestination(
                   icon: Icon(Icons.calendar_month_outlined),

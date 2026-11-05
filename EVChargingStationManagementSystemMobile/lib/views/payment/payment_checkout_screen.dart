@@ -329,7 +329,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
             ],
             CustomButton(
               text: quote?.isPaid == true || quote?.hasPendingPayment == true
-                  ? 'Xem trạng thái thanh toán'
+                  ? 'Xem mã giao dịch & Thanh toán'
                   : 'Tạo yêu cầu thanh toán',
               isLoading: _working || payments.isLoading,
               onPressed:
@@ -344,6 +344,22 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
               onPressed: busy ? null : _check,
               child: const Text('Kiểm tra trạng thái / hóa đơn'),
             ),
+            if (quote?.hasPendingPayment == true &&
+                quote?.payment?.paymentMethod == 'SePayTest') ...[
+              const SizedBox(height: 12),
+              CustomButton(
+                text: 'Xác nhận chuyển tiền thành công (SePay Test)',
+                isLoading: payments.isLoading,
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final ok = await payments.confirmSePayTest(quote!.sessionId);
+                        if (ok && mounted) {
+                          _status(quote!.sessionId);
+                        }
+                      },
+              ),
+            ],
             const SizedBox(height: 12),
             const Text('Hóa đơn hoàn tất khi máy chủ xác nhận thanh toán.'),
           ],

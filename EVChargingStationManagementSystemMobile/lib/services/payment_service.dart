@@ -67,6 +67,12 @@ class PaymentService {
     },
   );
 
+  Future<ApiResponse<void>> confirmSePayTest(String sessionId) =>
+      _apiClient.post(
+        '/Payment/sepay-test/confirm',
+        queryParameters: {'sessionId': sessionId},
+      );
+
   Future<ApiResponse<SessionPaymentModel>> getSessionPayment(
     String sessionId,
   ) => _apiClient.get(

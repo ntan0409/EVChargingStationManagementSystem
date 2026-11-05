@@ -1,0 +1,25 @@
+{
+  "Logging": { "LogLevel": { "Default": "Information", "Microsoft.AspNetCore": "Warning" } },
+  "AllowedHosts": "*",
+  "Authentication": {
+    "Google": {
+      "ClientId": "1075888121668-9hav7j6vaml1khc3kt4vfvh3h4de2ihf.apps.googleusercontent.com",
+      "AllowedClientIds": ["1075888121668-9hav7j6vaml1khc3kt4vfvh3h4de2ihf.apps.googleusercontent.com"]
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=EVCSMS_TeamDemo;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+  },
+  "Jwt": { "Issuer": "https://localhost:7252", "Audience": "https://localhost:7252" },
+  "CloudinarySettings": { "CloudName": "", "ApiKey": "", "ApiSecret": "" },
+  "Cors": { "AllowedOrigins": ["http://localhost:5173", "http://localhost:5387"] },
+  "ChargingDemo": { "Enabled": true },
+  "VnPay": { "Enabled": false, "Mode": "Sandbox" },
+  "SePay": {
+    "Enabled": false,
+    "GatewayMerchantId": "",
+    "GatewaySecretKey": "",
+    "TestBankAccountId": "",
+    "TestToken": ""
+  }
+}

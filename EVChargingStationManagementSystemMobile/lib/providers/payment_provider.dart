@@ -176,9 +176,24 @@ class PaymentProvider extends ChangeNotifier {
   Future<bool> processSePayTest(String sessionId) =>
       _createPendingPayment(sessionId, sePay: true);
 
+  Future<bool> processSePaySandbox(String sessionId) =>
+      _createPendingPayment(sessionId, sandbox: true);
+
+  Future<String?> sandboxLink(String sessionId) async {
+    final epoch = _epoch;
+    final response = await _paymentService.sandboxLink(sessionId);
+    if (!_active(epoch)) return null;
+    if (!response.success) {
+      _errorMessage = response.message;
+      _notify();
+    }
+    return response.data;
+  }
+
   Future<bool> _createPendingPayment(
     String sessionId, {
     bool sePay = false,
+    bool sandbox = false,
   }) async {
     if (_disposed || _isLoading) return false;
     final epoch = _epoch;
@@ -186,9 +201,11 @@ class PaymentProvider extends ChangeNotifier {
     _errorMessage = null;
     _notify();
     try {
-      final response = sePay
-          ? await _paymentService.createPaymentOffline(sessionId, sePay: true)
-          : await _paymentService.createPaymentOffline(sessionId);
+      final response = await _paymentService.createPaymentOffline(
+        sessionId,
+        sePay: sePay,
+        sandbox: sandbox,
+      );
       if (!_active(epoch)) return false;
       if (!response.success ||
           response.data == null ||

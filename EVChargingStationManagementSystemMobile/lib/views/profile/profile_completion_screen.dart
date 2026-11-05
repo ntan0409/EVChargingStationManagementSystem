@@ -5,6 +5,7 @@ import '../../core/utils/validators.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/custom_button.dart';
 import 'vehicle_selection_screen.dart';
+import '../payment/transaction_history_screen.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
   final List<String>? missingRequirements;
@@ -34,7 +35,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         final user = context.read<AuthProvider>().currentUser;
         _name.text = user?.name ?? '';
         final currentPhone = user?.phone ?? '';
-        _phone.text = currentPhone.contains('Chưa cập nhật') ? '' : currentPhone;
+        _phone.text = currentPhone.contains('Chưa cập nhật')
+            ? ''
+            : currentPhone;
       }
     });
   }
@@ -61,18 +64,19 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   }
 
   String _reason(String code) => switch (code) {
-        'name' => 'Họ và tên',
-        'phoneNumber' => 'Số điện thoại',
-        'emailVerification' => 'Email đã xác minh',
-        'supportedVehicle' => 'Phương tiện hợp lệ',
-        'accountInactive' => 'Tài khoản/hồ sơ đang bị khóa',
-        _ => 'Thông tin trên máy chủ',
-      };
+    'name' => 'Họ và tên',
+    'phoneNumber' => 'Số điện thoại',
+    'emailVerification' => 'Email đã xác minh',
+    'supportedVehicle' => 'Phương tiện hợp lệ',
+    'accountInactive' => 'Tài khoản/hồ sơ đang bị khóa',
+    _ => 'Thông tin trên máy chủ',
+  };
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final missing = widget.missingRequirements ??
+    final missing =
+        widget.missingRequirements ??
         auth.currentUser?.missingRequirements ??
         <String>[];
 
@@ -93,7 +97,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -152,8 +159,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                 padding: const EdgeInsets.only(top: 2),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.check_circle_outline,
-                                        size: 14, color: AppColors.primary),
+                                    const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       _reason(code),
@@ -190,7 +200,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -202,10 +214,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                             ),
                             validator: (v) =>
                                 v == null ||
-                                v.trim().isEmpty ||
-                                v.contains('Chưa cập nhật')
-                                    ? 'Vui lòng nhập họ và tên'
-                                    : null,
+                                    v.trim().isEmpty ||
+                                    v.contains('Chưa cập nhật')
+                                ? 'Vui lòng nhập họ và tên'
+                                : null,
                           ),
                           const SizedBox(height: 18),
 
@@ -221,7 +233,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -262,9 +276,22 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   ),
                 ],
               ),
-              child: CustomButton(
-                text: 'Tiếp tục chọn xe',
-                onPressed: _goToVehicleSelection,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomButton(
+                    text: 'Tiếp tục chọn xe',
+                    onPressed: _goToVehicleSelection,
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const TransactionHistoryScreen(),
+                      ),
+                    ),
+                    child: const Text('Xem lịch sử giao dịch'),
+                  ),
+                ],
               ),
             ),
           ],

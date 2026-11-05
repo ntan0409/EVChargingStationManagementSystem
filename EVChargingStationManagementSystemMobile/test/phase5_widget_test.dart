@@ -10,6 +10,8 @@ import 'package:ev_charging_station/core/constants/app_theme.dart';
 import 'package:ev_charging_station/core/network/api_client.dart';
 import 'package:ev_charging_station/providers/auth_provider.dart';
 import 'package:ev_charging_station/providers/booking_provider.dart';
+import 'package:ev_charging_station/providers/vehicle_provider.dart';
+import 'package:ev_charging_station/providers/charging_session_provider.dart';
 import 'package:ev_charging_station/providers/notification_provider.dart';
 import 'package:ev_charging_station/services/auth_service.dart';
 import 'package:ev_charging_station/services/booking_service.dart';
@@ -24,6 +26,17 @@ import 'support/fake_api.dart';
 import 'support/fake_google_identity.dart';
 import 'phase5_data_test.dart' show bookingFixture, notificationFixture;
 import 'package:ev_charging_station/models/booking_model.dart';
+
+class _EmptyVehicles extends VehicleProvider {
+  @override
+  Future<void> fetchVehicles() async {}
+}
+
+class _EmptyCharging extends ChargingSessionProvider {
+  _EmptyCharging() : super(pollInterval: null);
+  @override
+  Future<bool> refreshSession() async => false;
+}
 
 void main() {
   ApiClient client(FutureOr<ResponseBody> Function(RequestOptions) handler) {
@@ -82,6 +95,12 @@ void main() {
             providers: [
               ChangeNotifierProvider.value(value: booking),
               ChangeNotifierProvider.value(value: notification),
+              ChangeNotifierProvider<VehicleProvider>(
+                create: (_) => _EmptyVehicles(),
+              ),
+              ChangeNotifierProvider<ChargingSessionProvider>(
+                create: (_) => _EmptyCharging(),
+              ),
             ],
             child: MaterialApp(
               theme: AppTheme.lightTheme,

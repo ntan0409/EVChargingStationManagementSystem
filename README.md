@@ -2,6 +2,8 @@
 
 Hệ thống quản lý trạm sạc xe điện thông minh (EV Charging Station Management System) bao gồm toàn bộ mã nguồn **Frontend Mobile (Flutter)** và **Backend Web API (ASP.NET Core)**.
 
+**Bắt đầu tại [DEMO_GUIDE.md](DEMO_GUIDE.md):** cài công cụ một lần, nhận file cấu hình riêng của nhóm rồi bấm **RUN_DEMO.cmd**. Hướng dẫn gồm Booking → Check-in → sạc demo → SePay thẻ thử ngay trong Android, Cash, tài khoản và xử lý lỗi.
+
 ---
 
 ## 📂 Cấu Trúc Dự Án (Repository Structure)
@@ -28,6 +30,8 @@ EVChargingStationManagementSystem/
 
 ## Setup cho cả nhóm trên Windows
 
+Sau khi cài các công cụ và đặt `appsettings.Local.json` ở thư mục gốc, bấm đúp `RUN_DEMO.cmd` để mở backend, Android Emulator và app. Lần đầu chuẩn bị APK. Những lần sau dùng lại APK đã cài, chỉ build lại khi mã nguồn thay đổi. Giữ cửa sổ báo lỗi nếu có để xem bước nào chưa chạy được. Nhật ký backend nằm trong `.artifacts/demo-launcher` và có mật khẩu demo cục bộ.
+
 1. Cài .NET SDK 9 hoặc SDK mới hơn có runtime .NET 9.
 2. Cài Flutter stable 3.47.6 (Dart 3.13.5), phiên bản đã dùng để kiểm thử.
 3. Cài SQL Server Express LocalDB với instance mặc định `MSSQLLocalDB`.
@@ -50,7 +54,28 @@ và [báo cáo team setup](EVChargingStationManagementSystemMobile/audit/TEAM_SE
 
 Backend TeamDemo mô phỏng tín hiệu cắm xe sau khi check-in đúng lịch. Flutter đọc chế độ từ phiên sạc và hiển thị nút dừng demo tự động. Backend tính kWh theo thời gian phiên và giới hạn dung lượng xe.
 
-### Thanh toán SePay Test Mode
+### Thanh toán bằng thẻ thử SePay Sandbox (demo trên lớp)
+
+File riêng `appsettings.Local.json` của nhóm cần có `SePay.Enabled=true`,
+`SePay.GatewayMerchantId` (bắt đầu bằng `SP-TEST-`) và `SePay.GatewaySecretKey`
+(bắt đầu bằng `spsk_test_`). Chủ dự án đã cấu hình file này; thành viên nhận file qua kênh riêng,
+không tự đăng ký lại. Không đưa file lên Git hoặc vào APK.
+
+1. Dừng phiên sạc rồi chọn **SePay Sandbox — thẻ thử (tiền giả)**.
+2. Trên Android, app tự mở trang thẻ thử ngay trong màn hình thanh toán (WebView), không chuyển sang Chrome. Các nền tảng khác dùng trình duyệt. Chỉ nhập dữ liệu giả: tên `DEMO USER`,
+   số thẻ `4111111111111111`, hạn `12/30`, CVV `123` (đã kiểm tra trên Sandbox).
+3. Bấm Thanh toán và chọn kết quả mô phỏng trên trang SePay.
+4. Trên Android, app kiểm tra backend mỗi 5 giây và tự đóng màn hình thẻ khi backend xác nhận Paid. Có nút trở về hóa đơn và nút Back của Android nếu muốn đóng sớm; đóng trang không hủy hoặc xác nhận đã thanh toán.
+   Có nút mở lại trang thẻ; liên kết hết hạn sau 15 phút và được cấp mới khi mở lại.
+
+Backend chỉ ghi nhận khi API SePay Sandbox xác nhận đúng mã hóa đơn, chủ hóa đơn,
+số tiền, VND, trạng thái CAPTURED và giao dịch PAYMENT/APPROVED.
+Không cần dashboard tạo chuyển khoản, IPN public hay tunnel cho luồng tra cứu này.
+Trạng thái ở trang chuyển hướng không tự làm hóa đơn thành Paid. Không dùng thẻ thật.
+
+Hóa đơn đã tạo bằng phương thức cũ giữ nguyên phương thức; không tự chuyển hóa đơn đang chờ sang thẻ.
+
+### SePay Test Mode chuyển khoản (phương thức cũ)
 
 1. Người quản lý cung cấp file `appsettings.Local.json` đã có token Test Mode và UUID tài khoản test.
 2. Chọn SePay Test Mode trên hóa đơn. App hiển thị số tiền và mã giao dịch.

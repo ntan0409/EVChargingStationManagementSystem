@@ -1,5 +1,7 @@
 # EVCSMS Team Setup
 
+> Báo cáo lịch sử. Hướng dẫn hiện hành nằm ở [DEMO_GUIDE.md](../../DEMO_GUIDE.md); kết quả hợp nhất mới nhất ở [TEAM_MAIN_SYNC_RESULT.md](TEAM_MAIN_SYNC_RESULT.md). Bản demo hiện dùng file cấu hình riêng của nhóm và SePay Sandbox, thay cho hướng dẫn VNPay ban đầu bên dưới.
+
 ## Audit và quyết định
 
 - API dùng một appsettings.json. Các file trùng đã được bỏ trong thay đổi đang làm. Development đọc User Secrets và biến môi trường. Production giữ kiểm tra JWT và CORS hiện có.

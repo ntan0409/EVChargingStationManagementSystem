@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/charging_session_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../main_navigation_screen.dart';
 import '../widgets/api_problem.dart';
+import 'sepay_checkout_screen.dart';
 
 class PaymentStatusScreen extends StatefulWidget {
   final String sessionId;
@@ -19,6 +22,9 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
   Timer? _timer;
   bool _reading = false;
   bool _active = true;
+  bool _opening = false;
+  bool _autoOpened = false;
+  String? _openError;
   @override
   void initState() {
     super.initState();
@@ -47,13 +53,21 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
   }
 
   Future<void> _read() async {
-    if (!mounted || _reading) return;
+    if (!mounted || _reading || _opening) return;
     _reading = true;
     final payments = context.read<PaymentProvider>();
     final accepted = await payments.fetchQuote(widget.sessionId);
     if (!mounted) return;
     _reading = false;
     final quote = payments.quote;
+    if (accepted &&
+        quote?.hasPendingPayment == true &&
+        quote?.payment?.paymentMethod == 'SePaySandbox' &&
+        !_autoOpened) {
+      _autoOpened = true;
+      await _openCheckout();
+      return;
+    }
     if (!accepted || quote?.hasPendingPayment != true) {
       _timer?.cancel();
       _timer = null;
@@ -74,6 +88,57 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
     }
   }
 
+  Future<void> _openCheckout() async {
+    if (_opening) return;
+    _timer?.cancel();
+    _timer = null;
+    setState(() {
+      _opening = true;
+      _openError = null;
+    });
+    try {
+      final url = await context.read<PaymentProvider>().sandboxLink(
+        widget.sessionId,
+      );
+      if (!mounted) return;
+      if (url != null &&
+          !kIsWeb &&
+          defaultTargetPlatform == TargetPlatform.android) {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SePayCheckoutScreen(
+              checkoutUrl: Uri.parse(url),
+              sessionId: widget.sessionId,
+            ),
+          ),
+        );
+      } else if (url == null ||
+          !await launchUrl(
+            Uri.parse(url),
+            mode: LaunchMode.externalApplication,
+          )) {
+        if (mounted) {
+          setState(
+            () => _openError =
+                'Không mở được trang thanh toán. Bạn có thể mở lại bên dưới.',
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _openError = 'Không mở được SePay Sandbox. Hãy thử lại.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _opening = false);
+        // Also reconcile when the embedded page is closed with Android Back.
+        unawaited(_read());
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PaymentProvider>();
@@ -81,6 +146,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
         ? provider.quote
         : null;
     final paid = quote?.isPaid == true;
+    final sandbox = quote?.payment?.paymentMethod == 'SePaySandbox';
     final status = quote?.payment?.paymentStatus;
     final title = provider.checking
         ? 'Đang kiểm tra với máy chủ'
@@ -152,8 +218,18 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen>
           Text(
             paid
                 ? 'Máy chủ đã xác nhận hoàn tất hóa đơn.'
+                : sandbox
+                ? 'Nhập thẻ thử trên màn hình SePay Sandbox. Hóa đơn tự mở lại khi máy chủ xác nhận; chỉ dùng tiền giả.'
                 : 'Chưa được coi là đã thanh toán. Với tiền mặt, cần nhân viên xác nhận đã nhận tiền. Với SePay Test Mode, tạo giao dịch mô phỏng đúng số tiền và nội dung ở trên.',
           ),
+          if (_openError != null) Text(_openError!),
+          if (sandbox && quote?.hasPendingPayment == true)
+            FilledButton(
+              onPressed: _opening ? null : _openCheckout,
+              child: Text(
+                _opening ? 'Đang mở...' : 'Mở trang thẻ thử SePay Sandbox',
+              ),
+            ),
           const SizedBox(height: 20),
           OutlinedButton(
             onPressed: provider.checking ? null : _read,

@@ -58,12 +58,17 @@ app.*.map.json
 .env.local
 appsettings.Local.json
 
+# Local databases, recordings, logs and private runtime artifacts
+**/.artifacts/
+*.bak
+*.mdf
+*.ldf
+
+# Backend configuration is shared privately, never committed
+**/appsetting*.json
+**/appsettings*.json
 # Node / Frontend Web
 **/node_modules/
 **/dist/
 
-# Configuration & Secrets
-**/appsetting*.json
-**/appsettings*.json
 test_screenshot.png
-

@@ -63,7 +63,7 @@ export default function SocialLogin() {
     if (!window.google) return;
 
     window.google.accounts.id.initialize({
-      client_id: "688603250408-etb8ia4m3kl05nbi95gd6f4094606q1p.apps.googleusercontent.com",
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "688603250408-etb8ia4m3kl05nbi95gd6f4094606q1p.apps.googleusercontent.com",
       callback: handleCredentialResponse,
     });
 

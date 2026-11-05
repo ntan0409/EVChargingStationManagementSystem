@@ -316,7 +316,7 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
                 ],
               ),
               child: CustomButton(
-                text: 'Lưu',
+                text: 'Xác nhận xe và lưu hồ sơ',
                 isLoading: _saving,
                 onPressed: (_loading || _selected == null || !_valid(_selected!))
                     ? null

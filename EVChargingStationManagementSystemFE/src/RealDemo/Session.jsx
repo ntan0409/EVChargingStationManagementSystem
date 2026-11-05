@@ -7,7 +7,7 @@ import { getChargingPostId } from "../API/ChargingPost";
 import { PatchConnectorToggle, GetConnectorId } from "../API/Connector";
 import { GetVAT, GetPrice } from "../API/SystemConfiguration";
 import { BookCheckin } from "../API/Booking";
-import { PostPayment } from "../API/Payment";
+import { PostPayment, GetSessionPayment } from "../API/Payment";
 
 import {
     PlugZap,
@@ -23,7 +23,15 @@ import {
 } from "lucide-react";
 
 const Session = () => {
-    const [sessionId, setSessionId] = useState(null);
+    const [sessionId, setSessionId] = useState(() => {
+        try {
+            const savedConn = sessionStorage.getItem('payment.connectorId');
+            if (savedConn && String(savedConn).toLowerCase() === String(connectorID).toLowerCase()) {
+                return sessionStorage.getItem('payment.sessionId') || null;
+            }
+        } catch { }
+        return null;
+    });
     const [connectorStatus, setConnectorStatus] = useState("Available"); // Available, InUse, Charging, Faulted
     const [isCharging, setIsCharging] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -537,26 +545,34 @@ const Session = () => {
     };
 
 
+    const hasActiveOrUnpaidSession = Boolean(sessionId || timer > 0 || chargingData.energyDelivered > 0);
+    const canUnplug = connectorStatus === "InUse" && !isCharging && (!hasActiveOrUnpaidSession || isPaid);
+
     // Rút sạc khỏi xe (sau khi thanh toán hoặc chưa sạc)
     const handleUnplugFromCar = async () => {
-        // Kiểm tra status trước khi rút - chỉ cho phép rút khi InUse
-        if (connectorStatus !== "InUse") {
-            message.warning("⚠️ Connector không ở trạng thái InUse!");
+        if (!canUnplug) {
+            message.warning("⚠️ Vui lòng hoàn tất thanh toán trước khi rút sạc khỏi xe!");
             return;
         }
 
         setLoading(true);
         try {
             console.log("🔄 Rút sạc khỏi xe - Toggle true (có sẵn):", connectorID);
-            // toggle = true nghĩa là có sẵn (rút khỏi xe, cắm lại trụ)
             await PatchConnectorToggle(true, connectorID);
             setConnectorStatus("Available");
             setIsPaid(false);
             setSessionId(null);
+            try {
+                sessionStorage.removeItem('payment.paid');
+                sessionStorage.removeItem('payment.sessionId');
+                sessionStorage.removeItem('payment.amount');
+                sessionStorage.removeItem('payment.energy');
+                sessionStorage.removeItem('payment.connectorId');
+            } catch { }
             message.success("🔋 Đã rút sạc khỏi xe!");
         } catch (error) {
             console.error("❌ Lỗi khi rút sạc:", error);
-            message.error("Không thể rút sạc!");
+            message.error("Không thể rút sạc! Vui lòng kiểm tra trạng thái thanh toán.");
         } finally {
             setLoading(false);
         }
@@ -1097,8 +1113,8 @@ const Session = () => {
                                     <Button
                                         size="large"
                                         onClick={handleUnplugFromCar}
-                                        disabled={connectorStatus !== "InUse" || (!isPaid && sessionId)}
-                                        className="w-full font-bold hover:scale-105 transition-all"
+                                        disabled={!canUnplug}
+                                        className={`w-full font-bold transition-all ${canUnplug ? 'hover:scale-105 cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                                         icon={<Plug size={20} />}
                                         style={{
                                             height: '60px',
@@ -1107,10 +1123,10 @@ const Session = () => {
                                             background: 'white',
                                             borderWidth: '2px',
                                             borderStyle: 'solid',
-                                            borderColor: connectorStatus === "InUse" && (isPaid || !sessionId) ? '#00b09b' : '#d1d5db',
-                                            color: connectorStatus === "InUse" && (isPaid || !sessionId) ? '#00b09b' : '#9ca3af',
+                                            borderColor: canUnplug ? '#00b09b' : '#d1d5db',
+                                            color: canUnplug ? '#00b09b' : '#9ca3af',
                                             borderRadius: '16px',
-                                            boxShadow: connectorStatus === "InUse" && (isPaid || !sessionId)
+                                            boxShadow: canUnplug
                                                 ? '0 4px 12px rgba(0, 176, 155, 0.2)'
                                                 : 'none',
                                             display: 'flex',

@@ -178,8 +178,8 @@ const PaymentOptionPage = () => {
                 setShowPopup(true);
                 if (id) {
                     setPaymentId(id);
-                    try { sessionStorage.setItem('payment.paid', 'true'); } catch { }
-                    message.success(resp?.message || "Ghi nhận thanh toán offline thành công");
+                    try { sessionStorage.removeItem('payment.paid'); } catch { }
+                    message.success(resp?.message || "Ghi nhận yêu cầu thanh toán tại quầy thành công. Vui lòng chờ nhân viên xác nhận.");
                 } else {
                     message.error("Không tìm thấy paymentId");
                 }
@@ -213,7 +213,11 @@ const PaymentOptionPage = () => {
     };
 
     const handleReturnToSession = () => {
-        try { sessionStorage.setItem('payment.paid', 'true'); } catch { }
+        if (sePayPaid) {
+            try { sessionStorage.setItem('payment.paid', 'true'); } catch { }
+        } else {
+            try { sessionStorage.removeItem('payment.paid'); } catch { }
+        }
         const returnPath = sessionStorage.getItem('payment.returnPath');
         if (returnPath) navigate(returnPath);
         else navigate(-1);

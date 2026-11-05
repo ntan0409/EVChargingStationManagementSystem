@@ -30,7 +30,7 @@ const PaymentOption = ({ sessionId }) => {
             const id = resp?.data?.id ?? resp?.data;
             if (id) {
                 setPaymentId(id);
-                try { sessionStorage.setItem('payment.paid', 'true'); } catch { }
+                try { sessionStorage.removeItem('payment.paid'); } catch { }
             } else {
                 message.warning("Không tìm thấy paymentId");
             }

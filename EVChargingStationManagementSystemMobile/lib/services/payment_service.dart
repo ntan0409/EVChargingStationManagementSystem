@@ -31,8 +31,13 @@ class PaymentService {
   Future<ApiResponse<PaymentModel>> createPaymentOffline(
     String sessionId, {
     bool sePay = false,
+    bool sandbox = false,
   }) => _apiClient.post(
-    sePay ? '/Payment/sepay-test' : ApiConstants.paymentOffline,
+    sandbox
+        ? '/Payment/sepay-sandbox'
+        : sePay
+        ? '/Payment/sepay-test'
+        : ApiConstants.paymentOffline,
     queryParameters: {'sessionId': sessionId},
     fromJson: (value) {
       final payment = PaymentModel.fromJson(contractMap(value));
@@ -40,6 +45,25 @@ class PaymentService {
         throw const FormatException('Wrong payment session');
       }
       return payment;
+    },
+  );
+
+  Future<ApiResponse<String>> sandboxLink(String sessionId) => _apiClient.get(
+    '/Payment/sepay-sandbox/link/${Uri.encodeComponent(sessionId)}',
+    fromJson: (value) {
+      if (value is! String) {
+        throw const FormatException('Missing checkout link');
+      }
+      final relative = Uri.parse(value);
+      if (relative.hasScheme ||
+          relative.hasAuthority ||
+          relative.path != 'Payment/sepay-sandbox/checkout' ||
+          (relative.queryParameters['ticket'] ?? '').isEmpty) {
+        throw const FormatException('Invalid checkout link');
+      }
+      return Uri.parse(
+        '${ApiConstants.baseUrl}/',
+      ).resolveUri(relative).toString();
     },
   );
 

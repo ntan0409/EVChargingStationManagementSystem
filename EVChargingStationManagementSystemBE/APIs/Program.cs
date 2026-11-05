@@ -90,6 +90,7 @@ builder.Services.AddIdentityApiEndpoints<UserAccount>()
 
 // 📦 Controllers + Swagger
 builder.Services.AddControllers();
+builder.Services.AddDataProtection();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {

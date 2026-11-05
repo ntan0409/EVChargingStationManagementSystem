@@ -5,14 +5,50 @@ using Common.Helper;
 using Common.DTOs.PaymentDto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.DataProtection;
+using System.Security.Cryptography;
 
 namespace APIs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "EVDriver,Admin,Staff")]
-public class PaymentController(IPaymentService service) : ControllerBase
+public class PaymentController(IPaymentService service, IDataProtectionProvider protection) : ControllerBase
 {
+    [HttpPost("sepay-sandbox")]
+    [Authorize(Roles = "EVDriver")]
+    public async Task<IActionResult> CreateSandbox([FromQuery] Guid sessionId) =>
+        Result(await service.CreateSandboxPayment(sessionId, User.GetUserId()));
+
+    [HttpGet("sepay-sandbox/link/{sessionId:guid}")]
+    [Authorize(Roles = "EVDriver")]
+    public async Task<IActionResult> SandboxLink(Guid sessionId)
+    {
+        var owner = User.GetUserId();
+        if (await service.GetSandboxForm(sessionId, owner) == null) return NotFound();
+        var ticket = protection.CreateProtector("EVCSMS.SePaySandbox.Checkout.v1").Protect(
+            $"{sessionId}|{owner}|{DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeSeconds()}");
+        // Relative URL lets the app retain its reachable emulator/LAN API host.
+        return Ok(new { data = "Payment/sepay-sandbox/checkout?ticket=" + Uri.EscapeDataString(ticket) });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("sepay-sandbox/checkout")]
+    public async Task<IActionResult> SandboxCheckout([FromQuery] string ticket)
+    {
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
+        try
+        {
+            var parts = protection.CreateProtector("EVCSMS.SePaySandbox.Checkout.v1").Unprotect(ticket).Split('|');
+            if (parts.Length != 3 || !Guid.TryParse(parts[0], out var session) ||
+                !Guid.TryParse(parts[1], out var owner) || !long.TryParse(parts[2], out var expires) ||
+                expires <= DateTimeOffset.UtcNow.ToUnixTimeSeconds()) return BadRequest();
+            var html = await service.GetSandboxForm(session, owner);
+            return html == null ? NotFound() : Content(html, "text/html; charset=utf-8");
+        }
+        catch (CryptographicException) { return BadRequest(); }
+    }
     [HttpGet("methods")]
     public IActionResult Methods() => Result(service.GetMethods());
 

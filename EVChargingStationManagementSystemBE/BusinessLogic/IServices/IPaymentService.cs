@@ -4,6 +4,8 @@ namespace BusinessLogic.IServices
 {
     public interface IPaymentService
     {
+        Task<IServiceResult> CreateSandboxPayment(Guid sessionId, Guid accountId);
+        Task<string?> GetSandboxForm(Guid sessionId, Guid accountId);
         Task<IServiceResult> CreateSePayPayment(Guid sessionId, Guid accountId);
         Task<IServiceResult> CreatePaymentURL(Guid sessionId, Guid? accountId = null);
         Task<string> ProcessVNPayIPN(Dictionary<string, string> queryParams);

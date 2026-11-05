@@ -129,8 +129,12 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
               : null;
         });
       }
-    } else if (_method == 'Offline' || _method == 'SePayTest') {
-      final accepted = _method == 'SePayTest'
+    } else if (_method == 'Offline' ||
+        _method == 'SePayTest' ||
+        _method == 'SePaySandbox') {
+      final accepted = _method == 'SePaySandbox'
+          ? await payments.processSePaySandbox(session.id)
+          : _method == 'SePayTest'
           ? await payments.processSePayTest(session.id)
           : await payments.processOfflinePayment(session.id);
       final error = payments.errorMessage;

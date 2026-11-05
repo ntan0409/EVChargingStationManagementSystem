@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/charging_session_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/vehicle_provider.dart';
+import '../../core/utils/formatters.dart';
 import '../auth/login_screen.dart';
 import '../garage/my_vehicles_screen.dart';
+import '../payment/payment_checkout_screen.dart';
 import '../payment/transaction_history_screen.dart';
 import '../vouchers/voucher_list_screen.dart';
 import '../feedback_report/report_history_screen.dart';
@@ -59,8 +62,11 @@ class ProfileScreen extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final themeProvider = context.watch<ThemeProvider>();
     final vehicleProvider = context.watch<VehicleProvider>();
+    final chargingProvider = context.watch<ChargingSessionProvider>();
     final user = authProvider.currentUser;
     final isDark = themeProvider.isDarkMode;
+    final session = chargingProvider.currentSession;
+    final hasUnpaidInvoice = session != null && session.status == 'Completed';
 
     final cardBg = Theme.of(context).cardColor;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
@@ -410,9 +416,9 @@ class ProfileScreen extends StatelessWidget {
                       _buildBentoTile(
                         context,
                         title: 'Lịch Sử Giao Dịch',
-                        subtitle: 'Hóa đơn & Nạp tiền',
+                        subtitle: hasUnpaidInvoice ? '1 hóa đơn chờ' : 'Hóa đơn & Nạp tiền',
                         icon: Icons.receipt_long_rounded,
-                        color: AppColors.primary,
+                        color: hasUnpaidInvoice ? AppColors.warning : AppColors.primary,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()),

@@ -38,12 +38,16 @@ namespace APIs.Configs
                 .Map(d => d.ChargingSessionId, s => s.Payment == null ? (Guid?)null : s.Payment.ChargingSessionId)
                 .Map(d => d.PaymentMethod, s => s.Payment == null ? null : s.Payment.PaymentMethod)
                 .Map(d => d.PaymentStatus, s => s.Payment == null ? null : s.Payment.Status)
-                .Map(d => d.PaymentReference, s => s.Payment == null ? null : s.Payment.TxnRef);
+                .Map(d => d.PaymentReference, s => s.Payment == null ? null : s.Payment.TxnRef)
+                .Map(d => d.PowerRateKW, s => s.Payment == null || s.Payment.ChargingSessionNavigation == null ? (int?)null : s.Payment.ChargingSessionNavigation.PowerRateKW)
+                .Map(d => d.EnergyDeliveredKWh, s => s.Payment == null || s.Payment.ChargingSessionNavigation == null ? (double?)null : s.Payment.ChargingSessionNavigation.EnergyDeliveredKWh);
             TypeAdapterConfig<Transaction, TransactionViewDetailDto>.NewConfig()
                 .Map(d => d.ChargingSessionId, s => s.Payment == null ? (Guid?)null : s.Payment.ChargingSessionId)
                 .Map(d => d.PaymentMethod, s => s.Payment == null ? null : s.Payment.PaymentMethod)
                 .Map(d => d.PaymentStatus, s => s.Payment == null ? null : s.Payment.Status)
-                .Map(d => d.PaymentReference, s => s.Payment == null ? null : s.Payment.TxnRef);
+                .Map(d => d.PaymentReference, s => s.Payment == null ? null : s.Payment.TxnRef)
+                .Map(d => d.PowerRateKW, s => s.Payment == null || s.Payment.ChargingSessionNavigation == null ? (int?)null : s.Payment.ChargingSessionNavigation.PowerRateKW)
+                .Map(d => d.EnergyDeliveredKWh, s => s.Payment == null || s.Payment.ChargingSessionNavigation == null ? (double?)null : s.Payment.ChargingSessionNavigation.EnergyDeliveredKWh);
 
             TypeAdapterConfig<RegisterAccountDto, UserAccount>.NewConfig()
                 .Map(dest => dest.UserName, src => src.Email)

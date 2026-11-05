@@ -19,6 +19,8 @@ namespace Common.DTOs.TransactionDto
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
         public string? PaymentReference { get; set; }
+        public int? PowerRateKW { get; set; }
+        public double? EnergyDeliveredKWh { get; set; }
         public DateTime InitiatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
     }

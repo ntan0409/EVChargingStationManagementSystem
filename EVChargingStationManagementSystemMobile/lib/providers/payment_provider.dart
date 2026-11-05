@@ -176,6 +176,34 @@ class PaymentProvider extends ChangeNotifier {
   Future<bool> processSePayTest(String sessionId) =>
       _createPendingPayment(sessionId, sePay: true);
 
+  Future<bool> confirmSePayTest(String sessionId) async {
+    if (_disposed || _isLoading) return false;
+    final epoch = _epoch;
+    _isLoading = true;
+    _errorMessage = null;
+    _notify();
+    try {
+      final response = await _paymentService.confirmSePayTest(sessionId);
+      if (!_active(epoch)) return false;
+      if (!response.success) {
+        _errorMessage = response.message;
+        return false;
+      }
+      await fetchQuote(sessionId);
+      return true;
+    } catch (_) {
+      if (_active(epoch)) {
+        _errorMessage = 'Không thể xác nhận thanh toán SePay Test.';
+      }
+      return false;
+    } finally {
+      if (_active(epoch)) {
+        _isLoading = false;
+        _notify();
+      }
+    }
+  }
+
   Future<bool> processSePaySandbox(String sessionId) =>
       _createPendingPayment(sessionId, sandbox: true);
 
